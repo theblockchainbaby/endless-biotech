@@ -7,19 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { StatusBadge } from "@/components/status-badge";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge, StageBadge } from "@/components/status-badge";
 import { BarcodeScanner } from "@/components/barcode-scanner";
-import { useCurrentUser } from "@/components/user-provider";
+import type { Vessel } from "@/lib/types";
 import { toast } from "sonner";
-
-interface Vessel {
-  id: string;
-  barcode: string;
-  cultivar: { name: string } | null;
-  mediaType: string | null;
-  explantCount: number;
-  status: string;
-}
 
 interface NewVessel {
   barcode: string;
@@ -32,7 +24,6 @@ export default function MultiplyPage({ params }: { params: Promise<{ id: string 
   const { id } = use(params);
   const router = useRouter();
   const [parent, setParent] = useState<Vessel | null>(null);
-  const { currentUser } = useCurrentUser();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [newVessels, setNewVessels] = useState<NewVessel[]>([]);
@@ -46,7 +37,7 @@ export default function MultiplyPage({ params }: { params: Promise<{ id: string 
   }, [id]);
 
   const addVessel = () => {
-    setNewVessels([...newVessels, { barcode: "", explantCount: 0, mediaType: parent?.mediaType || "", notes: "" }]);
+    setNewVessels([...newVessels, { barcode: "", explantCount: 0, mediaType: parent?.mediaRecipe?.name || "", notes: "" }]);
   };
 
   const updateVessel = (index: number, field: keyof NewVessel, value: string | number) => {
@@ -87,7 +78,6 @@ export default function MultiplyPage({ params }: { params: Promise<{ id: string 
             mediaType: v.mediaType || null,
             notes: v.notes || null,
           })),
-          userId: currentUser?.id || null,
         }),
       });
 
@@ -109,10 +99,10 @@ export default function MultiplyPage({ params }: { params: Promise<{ id: string 
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Multiply Vessel</h1>
-        <p className="text-muted-foreground">Split {parent.barcode} into new vessels</p>
-      </div>
+      <PageHeader
+        title="Multiply Vessel"
+        description={`Split ${parent.barcode} into new vessels`}
+      />
 
       {/* Parent info */}
       <Card>
@@ -125,6 +115,8 @@ export default function MultiplyPage({ params }: { params: Promise<{ id: string 
             <span className="font-mono">{parent.barcode}</span>
             <span className="text-muted-foreground">Cultivar</span>
             <span>{parent.cultivar?.name || "—"}</span>
+            <span className="text-muted-foreground">Stage</span>
+            <StageBadge stage={parent.stage} />
             <span className="text-muted-foreground">Current Explants</span>
             <span className="font-mono">{parent.explantCount}</span>
             <span className="text-muted-foreground">Status</span>

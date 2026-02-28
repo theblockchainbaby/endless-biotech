@@ -5,16 +5,12 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
+import { ACTIVITY_TYPES } from "@/lib/constants";
+import { exportToCSV, flattenActivityForExport } from "@/lib/csv-export";
+import type { Activity } from "@/lib/types";
 import { format } from "date-fns";
-
-interface Activity {
-  id: string;
-  type: string;
-  notes: string | null;
-  createdAt: string;
-  vessel: { id: string; barcode: string };
-  user: { id: string; name: string } | null;
-}
 
 export default function ActivityPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -22,6 +18,7 @@ export default function ActivityPage() {
   const [typeFilter, setTypeFilter] = useState("all");
 
   useEffect(() => {
+    setLoading(true);
     const params = new URLSearchParams({ limit: "200" });
     if (typeFilter !== "all") params.set("type", typeFilter);
 
@@ -33,26 +30,37 @@ export default function ActivityPage() {
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Activity Log</h1>
-          <p className="text-muted-foreground">All vessel operations</p>
-        </div>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="media_filled">Media Filled</SelectItem>
-            <SelectItem value="planted">Planted</SelectItem>
-            <SelectItem value="moved_to_growth">Moved to Growth</SelectItem>
-            <SelectItem value="multiplied">Multiplied</SelectItem>
-            <SelectItem value="health_update">Health Update</SelectItem>
-            <SelectItem value="disposed">Disposed</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <PageHeader
+        title="Activity Log"
+        description="All vessel operations"
+        actions={
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const rows = activities.map((a) => flattenActivityForExport(a as unknown as Record<string, unknown>));
+                exportToCSV(rows, "activity-export");
+              }}
+            >
+              Export CSV
+            </Button>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {ACTIVITY_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        }
+      />
 
       {loading ? (
         <p className="text-center text-muted-foreground py-8">Loading...</p>
@@ -73,9 +81,11 @@ export default function ActivityPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium capitalize">{a.type.replace(/_/g, " ")}</span>
-                        <Link href={`/vessels/${a.vessel.id}`} className="font-mono text-sm text-muted-foreground hover:underline">
-                          {a.vessel.barcode}
-                        </Link>
+                        {a.vessel && (
+                          <Link href={`/vessels/${a.vessel.id}`} className="font-mono text-sm text-muted-foreground hover:underline">
+                            {a.vessel.barcode}
+                          </Link>
+                        )}
                       </div>
                       {a.notes && <p className="text-sm text-muted-foreground mt-0.5">{a.notes}</p>}
                       {a.user && <p className="text-xs text-muted-foreground">by {a.user.name}</p>}

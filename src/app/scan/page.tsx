@@ -3,51 +3,32 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { BarcodeScanner } from "@/components/barcode-scanner";
+import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { StatusBadge, HealthBadge } from "@/components/status-badge";
-import { useCurrentUser } from "@/components/user-provider";
+import { StatusBadge, HealthBadge, StageBadge } from "@/components/status-badge";
+import { VESSEL_STATUS_LABELS, HEALTH_STATUS_LABELS, STAGE_LABELS } from "@/lib/constants";
 import { toast } from "sonner";
-
-interface Cultivar {
-  id: string;
-  name: string;
-  species: string;
-}
-
-interface Vessel {
-  id: string;
-  barcode: string;
-  cultivarId: string | null;
-  cultivar: Cultivar | null;
-  mediaType: string | null;
-  explantCount: number;
-  healthStatus: string;
-  status: string;
-  notes: string | null;
-  parentVessel: { id: string; barcode: string } | null;
-  childVessels: { id: string; barcode: string; status: string }[];
-}
+import type { Cultivar, Vessel } from "@/lib/types";
 
 export default function ScanPage() {
   const router = useRouter();
-  const { currentUser } = useCurrentUser();
   const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
   const [existingVessel, setExistingVessel] = useState<Vessel | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [cultivars, setCultivars] = useState<Cultivar[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Form state for new/edit
+  // Form state
   const [cultivarId, setCultivarId] = useState("");
-  const [mediaType, setMediaType] = useState("");
   const [explantCount, setExplantCount] = useState("0");
   const [healthStatus, setHealthStatus] = useState("healthy");
   const [status, setStatus] = useState("media_filled");
+  const [stage, setStage] = useState("initiation");
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
@@ -64,19 +45,19 @@ export default function ScanPage() {
         setExistingVessel(data.vessel);
         setIsNew(false);
         setCultivarId(data.vessel.cultivarId || "");
-        setMediaType(data.vessel.mediaType || "");
         setExplantCount(String(data.vessel.explantCount));
         setHealthStatus(data.vessel.healthStatus);
         setStatus(data.vessel.status);
+        setStage(data.vessel.stage || "initiation");
         setNotes(data.vessel.notes || "");
       } else {
         setExistingVessel(null);
         setIsNew(true);
         setCultivarId("");
-        setMediaType("");
         setExplantCount("0");
         setHealthStatus("healthy");
         setStatus("media_filled");
+        setStage("initiation");
         setNotes("");
       }
     } finally {
@@ -95,12 +76,11 @@ export default function ScanPage() {
           body: JSON.stringify({
             barcode: scannedBarcode,
             cultivarId: cultivarId || null,
-            mediaType: mediaType || null,
             explantCount: parseInt(explantCount) || 0,
             healthStatus,
             status,
+            stage,
             notes: notes || null,
-            userId: currentUser?.id || null,
           }),
         });
         if (!res.ok) {
@@ -115,12 +95,11 @@ export default function ScanPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             cultivarId: cultivarId || null,
-            mediaType: mediaType || null,
             explantCount: parseInt(explantCount) || 0,
             healthStatus,
             status,
+            stage,
             notes: notes || null,
-            userId: currentUser?.id || null,
           }),
         });
         if (!res.ok) {
@@ -129,7 +108,6 @@ export default function ScanPage() {
         }
         toast.success(`Vessel ${scannedBarcode} updated`);
       }
-      // Reset for next scan
       setScannedBarcode(null);
       setExistingVessel(null);
       setIsNew(false);
@@ -146,10 +124,7 @@ export default function ScanPage() {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Scan Vessel</h1>
-        <p className="text-muted-foreground">Scan a barcode to create or update a vessel</p>
-      </div>
+      <PageHeader title="Scan Vessel" description="Scan a barcode to create or update a vessel" />
 
       {!scannedBarcode ? (
         <Card>
@@ -168,29 +143,26 @@ export default function ScanPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="font-mono text-lg">{scannedBarcode}</CardTitle>
-              {isNew ? (
-                <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">New Vessel</span>
-              ) : (
-                <StatusBadge status={existingVessel?.status || ""} />
-              )}
+              <div className="flex gap-2">
+                {isNew ? (
+                  <span className="text-sm bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-1 rounded">New Vessel</span>
+                ) : (
+                  <>
+                    <StatusBadge status={existingVessel?.status || ""} />
+                    {existingVessel?.stage && <StageBadge stage={existingVessel.stage} />}
+                  </>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {existingVessel && (
               <div className="flex gap-2 mb-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => router.push(`/vessels/${existingVessel.id}`)}
-                >
+                <Button variant="outline" size="sm" onClick={() => router.push(`/vessels/${existingVessel.id}`)}>
                   View Details
                 </Button>
                 {existingVessel.status !== "multiplied" && existingVessel.status !== "disposed" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => router.push(`/multiply/${existingVessel.id}`)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => router.push(`/multiply/${existingVessel.id}`)}>
                     Multiply
                   </Button>
                 )}
@@ -213,11 +185,6 @@ export default function ScanPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Media Type</Label>
-                <Input value={mediaType} onChange={(e) => setMediaType(e.target.value)} placeholder="e.g., MS Basal" />
-              </div>
-
-              <div className="space-y-2">
                 <Label>Explant Count</Label>
                 <Input type="number" value={explantCount} onChange={(e) => setExplantCount(e.target.value)} min="0" />
               </div>
@@ -225,14 +192,23 @@ export default function ScanPage() {
               <div className="space-y-2">
                 <Label>Health Status</Label>
                 <Select value={healthStatus} onValueChange={setHealthStatus}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="healthy">Healthy</SelectItem>
-                    <SelectItem value="contaminated">Contaminated</SelectItem>
-                    <SelectItem value="slow_growth">Slow Growth</SelectItem>
-                    <SelectItem value="dead">Dead</SelectItem>
+                    {Object.entries(HEALTH_STATUS_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Stage</Label>
+                <Select value={stage} onValueChange={setStage}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(STAGE_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -240,15 +216,11 @@ export default function ScanPage() {
               <div className="space-y-2 col-span-2">
                 <Label>Status</Label>
                 <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="media_filled">Media Filled</SelectItem>
-                    <SelectItem value="planted">Planted</SelectItem>
-                    <SelectItem value="growing">Growing</SelectItem>
-                    <SelectItem value="ready_to_multiply">Ready to Multiply</SelectItem>
-                    <SelectItem value="disposed">Disposed</SelectItem>
+                    {Object.entries(VESSEL_STATUS_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -291,12 +263,14 @@ export default function ScanPage() {
             <div className="grid grid-cols-2 gap-2 text-sm">
               <span className="text-muted-foreground">Cultivar</span>
               <span>{existingVessel.cultivar?.name || "—"}</span>
-              <span className="text-muted-foreground">Media</span>
-              <span>{existingVessel.mediaType || "—"}</span>
+              <span className="text-muted-foreground">Stage</span>
+              <span>{existingVessel.stage ? <StageBadge stage={existingVessel.stage} /> : "—"}</span>
               <span className="text-muted-foreground">Explants</span>
               <span>{existingVessel.explantCount}</span>
               <span className="text-muted-foreground">Health</span>
               <HealthBadge status={existingVessel.healthStatus} />
+              <span className="text-muted-foreground">Generation</span>
+              <span>{existingVessel.generation || 0}</span>
             </div>
           </CardContent>
         </Card>

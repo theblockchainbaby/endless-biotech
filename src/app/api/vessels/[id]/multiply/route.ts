@@ -1,66 +1,86 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth, handleApiError, parseBody } from "@/lib/api-helpers";
+import { multiplyVesselSchema } from "@/lib/validations";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const body = await req.json();
-  const { newVessels, userId } = body;
-  // newVessels: Array<{ barcode: string, explantCount: number, mediaType?: string, notes?: string }>
+  try {
+    const user = await requireAuth();
+    const { id } = await params;
+    const body = await parseBody(req, multiplyVesselSchema);
 
-  const parent = await prisma.vessel.findUnique({
-    where: { id },
-    include: { cultivar: true },
-  });
-
-  if (!parent) return NextResponse.json({ error: "Parent vessel not found" }, { status: 404 });
-
-  const created = await prisma.$transaction(async (tx) => {
-    // Mark parent as multiplied
-    await tx.vessel.update({
-      where: { id },
-      data: { status: "multiplied" },
+    const parent = await prisma.vessel.findFirst({
+      where: { id, organizationId: user.organizationId },
+      include: { cultivar: true },
     });
 
-    await tx.activity.create({
-      data: {
-        vesselId: id,
-        userId: userId || null,
-        type: "multiplied",
-        notes: `Multiplied into ${newVessels.length} new vessels`,
-      },
-    });
+    if (!parent) return NextResponse.json({ error: "Parent vessel not found" }, { status: 404 });
 
-    // Create child vessels
-    const children = [];
-    for (const nv of newVessels) {
-      const child = await tx.vessel.create({
-        data: {
-          barcode: nv.barcode,
-          cultivarId: parent.cultivarId,
-          mediaType: nv.mediaType || parent.mediaType,
-          explantCount: nv.explantCount || 0,
-          healthStatus: "healthy",
-          status: "planted",
-          notes: nv.notes || null,
-          parentVesselId: id,
-        },
-        include: { cultivar: true },
+    const created = await prisma.$transaction(async (tx) => {
+      // Mark parent as multiplied
+      await tx.vessel.update({
+        where: { id },
+        data: { status: "multiplied" },
       });
 
       await tx.activity.create({
         data: {
-          vesselId: child.id,
-          userId: userId || null,
-          type: "planted",
-          notes: `Created from multiplication of vessel ${parent.barcode}`,
+          vesselId: id,
+          userId: user.id,
+          type: "multiplied",
+          category: "vessel",
+          previousState: { status: parent.status },
+          newState: { status: "multiplied" },
+          metadata: { childCount: body.children.length },
+          notes: `Multiplied into ${body.children.length} new vessels`,
         },
       });
 
-      children.push(child);
-    }
+      // Create child vessels
+      const children = [];
+      for (const child of body.children) {
+        const newVessel = await tx.vessel.create({
+          data: {
+            barcode: child.barcode,
+            cultivarId: parent.cultivarId,
+            mediaRecipeId: child.mediaRecipeId || parent.mediaRecipeId,
+            locationId: parent.locationId,
+            explantCount: child.explantCount || 0,
+            healthStatus: "healthy",
+            status: "planted",
+            stage: "multiplication",
+            subcultureNumber: parent.subcultureNumber + 1,
+            generation: parent.generation + 1,
+            notes: child.notes || null,
+            parentVesselId: id,
+            organizationId: user.organizationId,
+          },
+          include: { cultivar: true },
+        });
 
-    return children;
-  });
+        await tx.activity.create({
+          data: {
+            vesselId: newVessel.id,
+            userId: user.id,
+            type: "created",
+            category: "vessel",
+            newState: { status: "planted", stage: "multiplication" },
+            metadata: { parentBarcode: parent.barcode, parentId: id },
+            notes: `Created from multiplication of ${parent.barcode}`,
+          },
+        });
 
-  return NextResponse.json({ parent: { id, barcode: parent.barcode }, children: created }, { status: 201 });
+        children.push(newVessel);
+      }
+
+      return children;
+    });
+
+    return NextResponse.json(
+      { parent: { id, barcode: parent.barcode }, children: created },
+      { status: 201 }
+    );
+  } catch (error) {
+    return handleApiError(error);
+  }
 }

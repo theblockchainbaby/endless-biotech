@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Nav } from "@/components/nav";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
-import { UserProvider } from "@/components/user-provider";
+import { SessionProvider } from "@/components/session-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Endless BioTech - Vessel Tracker",
-  description: "Tissue culture vessel tracking system",
+  title: "VitrOS - Tissue Culture Management",
+  description: "Enterprise tissue culture vessel tracking and lab management platform",
 };
 
 export default function RootLayout({
@@ -28,15 +30,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <UserProvider>
-          <div className="min-h-screen flex flex-col">
-            <Nav />
-            <main className="flex-1 container mx-auto px-4 py-6 max-w-7xl">
-              {children}
-            </main>
-          </div>
+        <SessionProvider>
+          <TooltipProvider>
+            <SidebarProvider>
+              <AppSidebar />
+              <SidebarInset>
+                <main className="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full">
+                  {children}
+                </main>
+              </SidebarInset>
+            </SidebarProvider>
+          </TooltipProvider>
           <Toaster />
-        </UserProvider>
+        </SessionProvider>
       </body>
     </html>
   );

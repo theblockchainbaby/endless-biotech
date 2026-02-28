@@ -3,54 +3,362 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String     @id @default(cuid())
+// ==================== MULTI-TENANT ====================
+
+model Organization {
+  id        String   @id @default(cuid())
   name      String
-  role      String     @default("tech") // tech, media_maker, director
-  pin       String?    // simple 4-digit PIN for quick login on shared devices
-  createdAt DateTime   @default(now())
-  activities Activity[]
+  slug      String   @unique
+  plan      String   @default("pro") // free, pro, enterprise
+  settings  Json?    // org-level settings (timezone, units, defaults)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users          User[]
+  sites          Site[]
+  cultivars      Cultivar[]
+  vessels        Vessel[]
+  mediaRecipes   MediaRecipe[]
+  inventoryItems InventoryItem[]
+  alerts         Alert[]
 }
+
+model Site {
+  id             String       @id @default(cuid())
+  name           String
+  address        String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  locations      Location[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+}
+
+// ==================== AUTH (NextAuth v5) ====================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  image         String?
+  role          String    @default("tech") // tech, media_maker, lead_tech, manager, admin
+  pin           String?   // 4-digit PIN for quick lab login on shared devices
+  isActive      Boolean   @default(true)
+  organizationId String
+  organization  Organization @relation(fields: [organizationId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts     Account[]
+  sessions     Session[]
+  activities   Activity[]
+  photos       Photo[]    @relation("PhotoTakenBy")
+  mediaBatches MediaBatch[] @relation("MediaPreparer")
+  environmentReadings EnvironmentReading[] @relation("ReadingRecordedBy")
+  inventoryUsages InventoryUsage[] @relation("UsageBy")
+
+  @@index([organizationId])
+  @@index([email])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ==================== LOCATION MANAGEMENT ====================
+
+model Location {
+  id        String  @id @default(cuid())
+  name      String
+  type      String  // growth_chamber, flow_hood, bench, greenhouse, shelf, cold_storage
+  siteId    String
+  site      Site    @relation(fields: [siteId], references: [id])
+  parentId  String?
+  parent    Location?  @relation("LocationHierarchy", fields: [parentId], references: [id])
+  children  Location[] @relation("LocationHierarchy")
+  capacity  Int?       // max vessels this location can hold
+  conditions Json?     // { temperature, humidity, lightHours, lightIntensity }
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  vessels             Vessel[]
+  environmentReadings EnvironmentReading[]
+
+  @@index([siteId])
+  @@index([parentId])
+}
+
+// ==================== CULTIVAR ====================
 
 model Cultivar {
-  id          String   @id @default(cuid())
-  name        String   // e.g., "Blue Dream", "Harvest Moon"
-  species     String   @default("Cannabis") // Cannabis, Date Palm, Orchid, etc.
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  vessels     Vessel[]
+  id                     String   @id @default(cuid())
+  name                   String
+  species                String   @default("Cannabis")
+  strain                 String?  // Indica, Sativa, Hybrid
+  geneticLineage         String?
+  description            String?
+  targetMultiplicationRate Float? // expected 2-3x
+  defaultMediaRecipeId   String?
+  defaultMediaRecipe     MediaRecipe? @relation("DefaultRecipe", fields: [defaultMediaRecipeId], references: [id])
+  organizationId         String
+  organization           Organization @relation(fields: [organizationId], references: [id])
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  vessels Vessel[]
+  photos  Photo[]  @relation("CultivarPhotos")
+
+  @@unique([name, organizationId])
+  @@index([organizationId])
 }
+
+// ==================== MEDIA RECIPE MANAGEMENT ====================
+
+model MediaRecipe {
+  id                   String   @id @default(cuid())
+  name                 String
+  baseMedia            String   // MS, DKW, WPM, B5, LS
+  targetPH             Float?
+  agarConcentration    Float?   // g/L
+  sucroseConcentration Float?   // g/L
+  stage                String?  // initiation, multiplication, rooting, acclimation
+  notes                String?
+  isActive             Boolean  @default(true)
+  organizationId       String
+  organization         Organization @relation(fields: [organizationId], references: [id])
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  components MediaComponent[]
+  batches    MediaBatch[]
+  vessels    Vessel[]
+  cultivars  Cultivar[] @relation("DefaultRecipe")
+
+  @@index([organizationId])
+}
+
+model MediaComponent {
+  id            String      @id @default(cuid())
+  recipeId      String
+  recipe        MediaRecipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  name          String      // BAP, NAA, IBA, Kinetin, 2,4-D
+  category      String      // pgr_cytokinin, pgr_auxin, pgr_gibberellin, vitamin, mineral, amino_acid, other
+  concentration Float       // in mg/L
+  unit          String      @default("mg/L")
+}
+
+model MediaBatch {
+  id           String      @id @default(cuid())
+  batchNumber  String      @unique
+  recipeId     String
+  recipe       MediaRecipe @relation(fields: [recipeId], references: [id])
+  volumeL      Float       // liters prepared
+  vesselCount  Int         // how many vessels this batch fills
+  preparedById String?
+  preparedBy   User?       @relation("MediaPreparer", fields: [preparedById], references: [id])
+  measuredPH   Float?
+  autoclaved   Boolean     @default(false)
+  autoclavedAt DateTime?
+  expiresAt    DateTime?
+  notes        String?
+  createdAt    DateTime    @default(now())
+}
+
+// ==================== VESSEL ====================
 
 model Vessel {
-  id             String     @id @default(cuid())
-  barcode        String     @unique
-  cultivarId     String?
-  cultivar       Cultivar?  @relation(fields: [cultivarId], references: [id])
-  mediaType      String?    // e.g., "MS Basal", "DKW", "WPM"
-  explantCount   Int        @default(0)
-  healthStatus   String     @default("healthy") // healthy, contaminated, slow_growth, dead
-  status         String     @default("media_filled") // media_filled, planted, growing, ready_to_multiply, multiplied, disposed
-  notes          String?
-  parentVesselId String?
-  parentVessel   Vessel?    @relation("VesselLineage", fields: [parentVesselId], references: [id])
-  childVessels   Vessel[]   @relation("VesselLineage")
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-  activities     Activity[]
+  id                 String    @id @default(cuid())
+  barcode            String    @unique
+  cultivarId         String?
+  cultivar           Cultivar? @relation(fields: [cultivarId], references: [id])
+  mediaRecipeId      String?
+  mediaRecipe        MediaRecipe? @relation(fields: [mediaRecipeId], references: [id])
+  locationId         String?
+  location           Location? @relation(fields: [locationId], references: [id])
+  explantCount       Int       @default(0)
+  healthStatus       String    @default("healthy")    // healthy, contaminated, slow_growth, necrotic, dead
+  status             String    @default("media_filled") // media_filled, planted, growing, ready_to_multiply, multiplied, disposed
+  stage              String    @default("initiation")   // initiation, multiplication, rooting, acclimation, hardening
+  subcultureNumber   Int       @default(0)
+  generation         Int       @default(0)              // generation from mother plant
+  contaminationType  String?   // bacterial, fungal, viral, unknown
+  contaminationDate  DateTime?
+  disposalReason     String?   // contaminated, dead, end_of_life, experiment_complete
+  notes              String?
+  parentVesselId     String?
+  parentVessel       Vessel?   @relation("VesselLineage", fields: [parentVesselId], references: [id])
+  childVessels       Vessel[]  @relation("VesselLineage")
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  plantedAt          DateTime?
+  nextSubcultureDate DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  activities Activity[]
+  photos     Photo[]    @relation("VesselPhotos")
+
+  @@index([organizationId, status])
+  @@index([organizationId, cultivarId])
+  @@index([barcode])
+  @@index([locationId])
+  @@index([nextSubcultureDate])
 }
 
+// ==================== ACTIVITY (AUDIT TRAIL) ====================
+
 model Activity {
-  id        String   @id @default(cuid())
-  vesselId  String
-  vessel    Vessel   @relation(fields: [vesselId], references: [id], onDelete: Cascade)
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id])
-  type      String   // media_filled, planted, moved_to_growth, multiplied, health_update, disposed
-  notes     String?
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  vesselId      String?
+  vessel        Vessel?  @relation(fields: [vesselId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id])
+  type          String   // media_filled, planted, moved_to_growth, stage_advanced, multiplied, health_update, contaminated, disposed, location_changed, photo_added
+  category      String   @default("vessel") // vessel, media, inventory, location, system
+  previousState Json?    // snapshot of changed fields before
+  newState      Json?    // snapshot of changed fields after
+  metadata      Json?    // additional context
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  @@index([vesselId])
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ==================== PHOTO ====================
+
+model Photo {
+  id           String    @id @default(cuid())
+  url          String
+  thumbnailUrl String?
+  vesselId     String?
+  vessel       Vessel?   @relation("VesselPhotos", fields: [vesselId], references: [id], onDelete: SetNull)
+  cultivarId   String?
+  cultivar     Cultivar? @relation("CultivarPhotos", fields: [cultivarId], references: [id], onDelete: SetNull)
+  caption      String?
+  stage        String?
+  takenById    String?
+  takenBy      User?     @relation("PhotoTakenBy", fields: [takenById], references: [id])
+  createdAt    DateTime  @default(now())
+
+  @@index([vesselId])
+  @@index([cultivarId])
+}
+
+// ==================== ENVIRONMENT TRACKING ====================
+
+model EnvironmentReading {
+  id           String   @id @default(cuid())
+  locationId   String
+  location     Location @relation(fields: [locationId], references: [id])
+  temperature  Float?   // Celsius
+  humidity     Float?   // percentage
+  co2Level     Float?   // ppm
+  lightLevel   Float?   // PPFD (umol/m2/s)
+  recordedById String?
+  recordedBy   User?    @relation("ReadingRecordedBy", fields: [recordedById], references: [id])
+  recordedAt   DateTime @default(now())
+  source       String   @default("manual") // manual, sensor_api
+
+  @@index([locationId, recordedAt])
+}
+
+// ==================== INVENTORY MANAGEMENT ====================
+
+model InventoryItem {
+  id             String   @id @default(cuid())
+  name           String
+  category       String   // chemical, consumable, container, equipment
+  sku            String?
+  supplier       String?
+  currentStock   Float    @default(0)
+  unit           String   // g, mL, L, units
+  reorderLevel   Float?
+  costPerUnit    Float?
+  storageLocation String?
+  expirationDate DateTime?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  usageLogs InventoryUsage[]
+
+  @@index([organizationId])
+}
+
+model InventoryUsage {
+  id        String        @id @default(cuid())
+  itemId    String
+  item      InventoryItem @relation(fields: [itemId], references: [id])
+  quantity  Float         // negative = consumption, positive = restock
+  reason    String?
+  usedById  String?
+  usedBy    User?         @relation("UsageBy", fields: [usedById], references: [id])
+  createdAt DateTime      @default(now())
+
+  @@index([itemId])
+}
+
+// ==================== ALERTS ====================
+
+model Alert {
+  id             String   @id @default(cuid())
+  type           String   // subculture_due, low_inventory, environment_out_of_range, contamination_spike
+  severity       String   @default("info") // info, warning, critical
+  title          String
+  message        String
+  entityType     String?  // vessel, location, inventory_item
+  entityId       String?
+  isRead         Boolean  @default(false)
+  isDismissed    Boolean  @default(false)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  userId         String?  // null = org-wide
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, isRead])
+  @@index([userId])
 }

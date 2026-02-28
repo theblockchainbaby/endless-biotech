@@ -7,15 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { PageHeader } from "@/components/page-header";
+import type { Cultivar } from "@/lib/types";
 import { toast } from "sonner";
-
-interface Cultivar {
-  id: string;
-  name: string;
-  species: string;
-  description: string | null;
-  _count: { vessels: number };
-}
 
 export default function CultivarsPage() {
   const [cultivars, setCultivars] = useState<Cultivar[]>([]);
@@ -71,37 +65,37 @@ export default function CultivarsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Cultivars</h1>
-          <p className="text-muted-foreground">Manage plant species and cultivar library</p>
-        </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>Add Cultivar</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Cultivar</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-2">
-              <div className="space-y-2">
-                <Label>Name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Blue Dream" autoFocus />
+      <PageHeader
+        title="Cultivars"
+        description="Manage plant species and cultivar library"
+        actions={
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button>Add Cultivar</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Cultivar</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Blue Dream" autoFocus />
+                </div>
+                <div className="space-y-2">
+                  <Label>Species</Label>
+                  <Input value={species} onChange={(e) => setSpecies(e.target.value)} placeholder="e.g., Cannabis, Date Palm" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description (optional)</Label>
+                  <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Notes about this cultivar" />
+                </div>
+                <Button onClick={handleCreate} className="w-full">Create Cultivar</Button>
               </div>
-              <div className="space-y-2">
-                <Label>Species</Label>
-                <Input value={species} onChange={(e) => setSpecies(e.target.value)} placeholder="e.g., Cannabis, Date Palm" />
-              </div>
-              <div className="space-y-2">
-                <Label>Description (optional)</Label>
-                <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Notes about this cultivar" />
-              </div>
-              <Button onClick={handleCreate} className="w-full">Create Cultivar</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       {loading ? (
         <p className="text-center text-muted-foreground py-8">Loading...</p>
@@ -131,14 +125,14 @@ export default function CultivarsPage() {
                     <TableCell className="font-medium">{c.name}</TableCell>
                     <TableCell>{c.species}</TableCell>
                     <TableCell className="text-muted-foreground">{c.description || "—"}</TableCell>
-                    <TableCell className="text-right font-mono">{c._count.vessels}</TableCell>
+                    <TableCell className="text-right font-mono">{c._count?.vessels ?? 0}</TableCell>
                     <TableCell>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDelete(c.id, c.name)}
                         className="text-destructive"
-                        disabled={c._count.vessels > 0}
+                        disabled={(c._count?.vessels ?? 0) > 0}
                       >
                         Delete
                       </Button>
@@ -156,7 +150,7 @@ export default function CultivarsPage() {
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">{c.name}</CardTitle>
-                    <span className="text-sm text-muted-foreground font-mono">{c._count.vessels} vessels</span>
+                    <span className="text-sm text-muted-foreground font-mono">{c._count?.vessels ?? 0} vessels</span>
                   </div>
                 </CardHeader>
                 <CardContent>

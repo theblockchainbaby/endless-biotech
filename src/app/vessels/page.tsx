@@ -7,25 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { StatusBadge, HealthBadge } from "@/components/status-badge";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge, HealthBadge, StageBadge } from "@/components/status-badge";
+import { VESSEL_STATUS_LABELS, HEALTH_STATUS_LABELS, STAGE_LABELS } from "@/lib/constants";
+import { exportToCSV, flattenVesselForExport } from "@/lib/csv-export";
+import type { Vessel, Cultivar } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
-
-interface Cultivar {
-  id: string;
-  name: string;
-}
-
-interface Vessel {
-  id: string;
-  barcode: string;
-  cultivar: Cultivar | null;
-  mediaType: string | null;
-  explantCount: number;
-  healthStatus: string;
-  status: string;
-  updatedAt: string;
-  parentVessel: { id: string; barcode: string } | null;
-}
 
 export default function VesselsPage() {
   const [vessels, setVessels] = useState<Vessel[]>([]);
@@ -36,6 +23,7 @@ export default function VesselsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [cultivarFilter, setCultivarFilter] = useState("all");
   const [healthFilter, setHealthFilter] = useState("all");
+  const [stageFilter, setStageFilter] = useState("all");
   const [loading, setLoading] = useState(true);
 
   const fetchVessels = useCallback(async () => {
@@ -45,13 +33,14 @@ export default function VesselsPage() {
     if (statusFilter !== "all") params.set("status", statusFilter);
     if (cultivarFilter !== "all") params.set("cultivarId", cultivarFilter);
     if (healthFilter !== "all") params.set("healthStatus", healthFilter);
+    if (stageFilter !== "all") params.set("stage", stageFilter);
 
     const res = await fetch(`/api/vessels?${params}`);
     const data = await res.json();
     setVessels(data.vessels);
     setTotal(data.total);
     setLoading(false);
-  }, [page, search, statusFilter, cultivarFilter, healthFilter]);
+  }, [page, search, statusFilter, cultivarFilter, healthFilter, stageFilter]);
 
   useEffect(() => {
     fetchVessels();
@@ -63,26 +52,38 @@ export default function VesselsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter, cultivarFilter, healthFilter]);
+  }, [search, statusFilter, cultivarFilter, healthFilter, stageFilter]);
 
   const totalPages = Math.ceil(total / 50);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Vessels</h1>
-          <p className="text-muted-foreground">{total.toLocaleString()} vessels total</p>
-        </div>
-        <Link href="/scan">
-          <Button>Scan New</Button>
-        </Link>
-      </div>
+      <PageHeader
+        title="Vessels"
+        description={`${total.toLocaleString()} vessels total`}
+        actions={
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const rows = vessels.map((v) => flattenVesselForExport(v as unknown as Record<string, unknown>));
+                exportToCSV(rows, "vessels-export");
+              }}
+            >
+              Export CSV
+            </Button>
+            <Link href="/scan">
+              <Button>Scan New</Button>
+            </Link>
+          </div>
+        }
+      />
 
       {/* Filters */}
       <Card>
         <CardContent className="pt-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <Input
               placeholder="Search barcode..."
               value={search}
@@ -94,12 +95,20 @@ export default function VesselsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="media_filled">Media Filled</SelectItem>
-                <SelectItem value="planted">Planted</SelectItem>
-                <SelectItem value="growing">Growing</SelectItem>
-                <SelectItem value="ready_to_multiply">Ready to Multiply</SelectItem>
-                <SelectItem value="multiplied">Multiplied</SelectItem>
-                <SelectItem value="disposed">Disposed</SelectItem>
+                {Object.entries(VESSEL_STATUS_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={stageFilter} onValueChange={setStageFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Stage" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Stages</SelectItem>
+                {Object.entries(STAGE_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={cultivarFilter} onValueChange={setCultivarFilter}>
@@ -119,10 +128,9 @@ export default function VesselsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Health</SelectItem>
-                <SelectItem value="healthy">Healthy</SelectItem>
-                <SelectItem value="contaminated">Contaminated</SelectItem>
-                <SelectItem value="slow_growth">Slow Growth</SelectItem>
-                <SelectItem value="dead">Dead</SelectItem>
+                {Object.entries(HEALTH_STATUS_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -143,7 +151,7 @@ export default function VesselsPage() {
                 <TableRow>
                   <TableHead>Barcode</TableHead>
                   <TableHead>Cultivar</TableHead>
-                  <TableHead>Media</TableHead>
+                  <TableHead>Stage</TableHead>
                   <TableHead className="text-right">Explants</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Health</TableHead>
@@ -159,7 +167,7 @@ export default function VesselsPage() {
                       </Link>
                     </TableCell>
                     <TableCell>{v.cultivar?.name || "—"}</TableCell>
-                    <TableCell>{v.mediaType || "—"}</TableCell>
+                    <TableCell><StageBadge stage={v.stage} /></TableCell>
                     <TableCell className="text-right font-mono">{v.explantCount}</TableCell>
                     <TableCell><StatusBadge status={v.status} /></TableCell>
                     <TableCell><HealthBadge status={v.healthStatus} /></TableCell>
@@ -184,6 +192,7 @@ export default function VesselsPage() {
                         <p className="text-sm text-muted-foreground">{v.cultivar?.name || "No cultivar"}</p>
                       </div>
                       <div className="flex gap-1">
+                        <StageBadge stage={v.stage} />
                         <StatusBadge status={v.status} />
                         <HealthBadge status={v.healthStatus} />
                       </div>
