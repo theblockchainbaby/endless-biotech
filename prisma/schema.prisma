@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  name      String
+  role      String     @default("tech") // tech, media_maker, director
+  pin       String?    // simple 4-digit PIN for quick login on shared devices
+  createdAt DateTime   @default(now())
+  activities Activity[]
+}
+
+model Cultivar {
+  id          String   @id @default(cuid())
+  name        String   // e.g., "Blue Dream", "Harvest Moon"
+  species     String   @default("Cannabis") // Cannabis, Date Palm, Orchid, etc.
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  vessels     Vessel[]
+}
+
+model Vessel {
+  id             String     @id @default(cuid())
+  barcode        String     @unique
+  cultivarId     String?
+  cultivar       Cultivar?  @relation(fields: [cultivarId], references: [id])
+  mediaType      String?    // e.g., "MS Basal", "DKW", "WPM"
+  explantCount   Int        @default(0)
+  healthStatus   String     @default("healthy") // healthy, contaminated, slow_growth, dead
+  status         String     @default("media_filled") // media_filled, planted, growing, ready_to_multiply, multiplied, disposed
+  notes          String?
+  parentVesselId String?
+  parentVessel   Vessel?    @relation("VesselLineage", fields: [parentVesselId], references: [id])
+  childVessels   Vessel[]   @relation("VesselLineage")
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  activities     Activity[]
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  vesselId  String
+  vessel    Vessel   @relation(fields: [vesselId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  type      String   // media_filled, planted, moved_to_growth, multiplied, health_update, disposed
+  notes     String?
+  createdAt DateTime @default(now())
+}
