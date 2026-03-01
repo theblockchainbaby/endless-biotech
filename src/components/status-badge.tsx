@@ -38,6 +38,22 @@ export function HealthBadge({ status }: { status: string }) {
   return <Badge variant={variant}>{label}</Badge>;
 }
 
+const cultivarHealthConfig: Record<string, { label: string; dotClass: string; textClass: string }> = {
+  healthy:  { label: "Healthy",  dotClass: "bg-green-500",  textClass: "text-green-700 dark:text-green-400" },
+  stable:   { label: "Stable",   dotClass: "bg-amber-500",  textClass: "text-amber-700 dark:text-amber-400" },
+  critical: { label: "Critical", dotClass: "bg-red-500",    textClass: "text-red-700 dark:text-red-400" },
+};
+
+export function CultivarHealthBadge({ status }: { status: string }) {
+  const config = cultivarHealthConfig[status] || cultivarHealthConfig.healthy;
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-sm font-medium ${config.textClass}`}>
+      <span className={`h-2.5 w-2.5 rounded-full ${config.dotClass}`} />
+      {config.label}
+    </span>
+  );
+}
+
 export function StageBadge({ stage }: { stage: string }) {
   const label = STAGE_LABELS[stage] || stage;
   const colorClass = stageColors[stage] || "bg-muted text-muted-foreground";

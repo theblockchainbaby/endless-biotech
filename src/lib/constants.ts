@@ -157,3 +157,9 @@ export const INVENTORY_CATEGORIES = [
 ] as const;
 
 export const DEFAULT_SUBCULTURE_INTERVAL_DAYS = 14;
+
+export const CULTIVAR_HEALTH_LABELS: Record<string, string> = {
+  healthy: "Healthy",
+  stable: "Stable",
+  critical: "Critical",
+};

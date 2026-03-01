@@ -26,6 +26,7 @@ export interface Cultivar {
   strain: string | null;
   geneticLineage: string | null;
   description: string | null;
+  notes: string | null;
   targetMultiplicationRate: number | null;
   defaultMediaRecipeId: string | null;
   organizationId: string;

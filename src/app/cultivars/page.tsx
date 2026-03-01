@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,13 +9,21 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/page-header";
+import { CultivarHealthBadge } from "@/components/status-badge";
 import type { Cultivar } from "@/lib/types";
 import { toast } from "sonner";
+import { Search } from "lucide-react";
+
+interface CultivarWithHealth extends Cultivar {
+  cultivarHealth: string;
+}
 
 export default function CultivarsPage() {
-  const [cultivars, setCultivars] = useState<Cultivar[]>([]);
+  const router = useRouter();
+  const [cultivars, setCultivars] = useState<CultivarWithHealth[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [name, setName] = useState("");
   const [species, setSpecies] = useState("Cannabis");
   const [description, setDescription] = useState("");
@@ -29,6 +38,16 @@ export default function CultivarsPage() {
   useEffect(() => {
     fetchCultivars();
   }, []);
+
+  const filtered = cultivars.filter((c) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      c.name.toLowerCase().includes(q) ||
+      c.species.toLowerCase().includes(q) ||
+      (c.description || "").toLowerCase().includes(q)
+    );
+  });
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -52,7 +71,8 @@ export default function CultivarsPage() {
     }
   };
 
-  const handleDelete = async (id: string, cultivarName: string) => {
+  const handleDelete = async (e: React.MouseEvent, id: string, cultivarName: string) => {
+    e.stopPropagation();
     if (!confirm(`Delete cultivar "${cultivarName}"? This cannot be undone.`)) return;
     const res = await fetch(`/api/cultivars/${id}`, { method: "DELETE" });
     if (res.ok) {
@@ -97,12 +117,22 @@ export default function CultivarsPage() {
         }
       />
 
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <Input
+          placeholder="Search cultivars..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
       {loading ? (
         <p className="text-center text-muted-foreground py-8">Loading...</p>
-      ) : cultivars.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="pt-6 text-center text-muted-foreground">
-            <p>No cultivars yet. Add your first cultivar to get started.</p>
+            <p>{search ? "No cultivars match your search." : "No cultivars yet. Add your first cultivar to get started."}</p>
           </CardContent>
         </Card>
       ) : (
@@ -114,23 +144,29 @@ export default function CultivarsPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Species</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableHead>Health</TableHead>
                   <TableHead className="text-right">Vessels</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {cultivars.map((c) => (
-                  <TableRow key={c.id}>
+                {filtered.map((c) => (
+                  <TableRow
+                    key={c.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/cultivars/${c.id}`)}
+                  >
                     <TableCell className="font-medium">{c.name}</TableCell>
                     <TableCell>{c.species}</TableCell>
-                    <TableCell className="text-muted-foreground">{c.description || "—"}</TableCell>
+                    <TableCell>
+                      <CultivarHealthBadge status={c.cultivarHealth} />
+                    </TableCell>
                     <TableCell className="text-right font-mono">{c._count?.vessels ?? 0}</TableCell>
                     <TableCell>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDelete(c.id, c.name)}
+                        onClick={(e) => handleDelete(e, c.id, c.name)}
                         className="text-destructive"
                         disabled={(c._count?.vessels ?? 0) > 0}
                       >
@@ -145,17 +181,23 @@ export default function CultivarsPage() {
 
           {/* Mobile */}
           <div className="md:hidden space-y-3">
-            {cultivars.map((c) => (
-              <Card key={c.id}>
+            {filtered.map((c) => (
+              <Card
+                key={c.id}
+                className="cursor-pointer"
+                onClick={() => router.push(`/cultivars/${c.id}`)}
+              >
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">{c.name}</CardTitle>
-                    <span className="text-sm text-muted-foreground font-mono">{c._count?.vessels ?? 0} vessels</span>
+                    <CultivarHealthBadge status={c.cultivarHealth} />
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">{c.species}</p>
-                  {c.description && <p className="text-sm mt-1">{c.description}</p>}
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">{c.species}</p>
+                    <span className="text-sm text-muted-foreground font-mono">{c._count?.vessels ?? 0} vessels</span>
+                  </div>
                 </CardContent>
               </Card>
             ))}

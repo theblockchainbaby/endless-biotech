@@ -137,6 +137,7 @@ model Cultivar {
   strain                 String?  // Indica, Sativa, Hybrid
   geneticLineage         String?
   description            String?
+  notes                  String?  // Ongoing observations
   targetMultiplicationRate Float? // expected 2-3x
   defaultMediaRecipeId   String?
   defaultMediaRecipe     MediaRecipe? @relation("DefaultRecipe", fields: [defaultMediaRecipeId], references: [id])

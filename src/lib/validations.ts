@@ -79,6 +79,7 @@ export const createCultivarSchema = z.object({
   strain: z.string().nullable().optional(),
   geneticLineage: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
   targetMultiplicationRate: z.number().positive().nullable().optional(),
   defaultMediaRecipeId: z.string().nullable().optional(),
 });
