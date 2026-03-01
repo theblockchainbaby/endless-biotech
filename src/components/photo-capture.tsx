@@ -34,24 +34,28 @@ export function PhotoCapture({ vesselId, cultivarId, stage, onUploaded }: PhotoC
     setUploading(true);
 
     try {
-      // Convert file to base64 data URL for storage
-      // In production, this would upload to Cloudinary/S3
-      const reader = new FileReader();
-      const dataUrl = await new Promise<string>((resolve) => {
-        reader.onload = (e) => resolve(e.target?.result as string);
-        reader.readAsDataURL(file);
-      });
+      // Upload file to blob storage
+      const formData = new FormData();
+      formData.append("file", file);
+      const uploadRes = await fetch("/api/photos/upload", { method: "POST", body: formData });
+
+      let url: string;
+      if (uploadRes.ok) {
+        const blob = await uploadRes.json();
+        url = blob.url;
+      } else {
+        // Fallback to base64 if blob storage not configured
+        url = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.readAsDataURL(file);
+        });
+      }
 
       const res = await fetch("/api/photos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: dataUrl,
-          vesselId,
-          cultivarId,
-          caption,
-          stage,
-        }),
+        body: JSON.stringify({ url, vesselId, cultivarId, caption, stage }),
       });
 
       if (res.ok) {

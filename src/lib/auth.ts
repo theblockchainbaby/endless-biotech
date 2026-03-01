@@ -26,7 +26,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           include: { organization: true },
         });
 
-        if (!user || !user.passwordHash || !user.isActive) return null;
+        if (!user || !user.passwordHash || !user.isActive || user.role === "disabled") return null;
 
         const isValid = await bcrypt.compare(
           credentials.password as string,
@@ -60,6 +60,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             pin: credentials.pin as string,
             organizationId: credentials.organizationId as string,
             isActive: true,
+            NOT: { role: "disabled" },
           },
           include: { organization: true },
         });

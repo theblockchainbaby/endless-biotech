@@ -27,6 +27,12 @@ export default function AdminPage() {
   const [role, setRole] = useState<string>("tech");
   const [pin, setPin] = useState("");
 
+  // Password change
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [changingPw, setChangingPw] = useState(false);
+
   const fetchUsers = () => {
     fetch("/api/users")
       .then((r) => r.json())
@@ -81,6 +87,40 @@ export default function AdminPage() {
     if (res.ok) {
       toast.success(isActive ? "User deactivated" : "User activated");
       fetchUsers();
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPw || !newPw) {
+      toast.error("Fill in current and new password");
+      return;
+    }
+    if (newPw.length < 8) {
+      toast.error("New password must be at least 8 characters");
+      return;
+    }
+    if (newPw !== confirmPw) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    setChangingPw(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
+      });
+      if (res.ok) {
+        toast.success("Password changed");
+        setCurrentPw("");
+        setNewPw("");
+        setConfirmPw("");
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Failed to change password");
+      }
+    } finally {
+      setChangingPw(false);
     }
   };
 
@@ -204,6 +244,29 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       )}
+      {/* Change Password */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Change Password</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 max-w-sm">
+          <div>
+            <Label>Current Password</Label>
+            <Input type="password" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} className="mt-1" />
+          </div>
+          <div>
+            <Label>New Password</Label>
+            <Input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} className="mt-1" placeholder="Min 8 characters" />
+          </div>
+          <div>
+            <Label>Confirm New Password</Label>
+            <Input type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} className="mt-1" />
+          </div>
+          <Button onClick={handleChangePassword} disabled={changingPw}>
+            {changingPw ? "Changing..." : "Update Password"}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
