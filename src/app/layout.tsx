@@ -6,6 +6,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { SessionProvider } from "@/components/session-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ServiceWorkerRegister } from "@/components/sw-register";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,6 +21,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "VitrOS - Tissue Culture Management",
   description: "Enterprise tissue culture vessel tracking and lab management platform",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "VitrOS",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export default function RootLayout({
@@ -29,6 +39,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <meta name="theme-color" content="#16a34a" />
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <SessionProvider>
           <TooltipProvider>
@@ -42,6 +56,7 @@ export default function RootLayout({
             </SidebarProvider>
           </TooltipProvider>
           <Toaster />
+          <ServiceWorkerRegister />
         </SessionProvider>
       </body>
     </html>

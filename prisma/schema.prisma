@@ -24,6 +24,7 @@ model Organization {
   vessels        Vessel[]
   mediaRecipes   MediaRecipe[]
   inventoryItems InventoryItem[]
+  protocols      Protocol[]
   alerts         Alert[]
 }
 
@@ -345,6 +346,25 @@ model InventoryUsage {
   createdAt DateTime      @default(now())
 
   @@index([itemId])
+}
+
+// ==================== PROTOCOLS / SOPs ====================
+
+model Protocol {
+  id             String   @id @default(cuid())
+  name           String
+  stage          String   // initiation, multiplication, rooting, acclimation, hardening, media_prep
+  version        Int      @default(1)
+  steps          Json     // [{ order: 1, instruction: "...", duration: "5 min", critical: true }]
+  safetyNotes    String?
+  isActive       Boolean  @default(true)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([name, organizationId])
+  @@index([organizationId, stage])
 }
 
 // ==================== ALERTS ====================

@@ -220,6 +220,26 @@ export interface Alert {
   createdAt: string;
 }
 
+export interface ProtocolStep {
+  order: number;
+  instruction: string;
+  duration?: string;
+  critical?: boolean;
+}
+
+export interface Protocol {
+  id: string;
+  name: string;
+  stage: string;
+  version: number;
+  steps: ProtocolStep[];
+  safetyNotes: string | null;
+  isActive: boolean;
+  organizationId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Dashboard stat types
 export interface DashboardStats {
   totalVessels: number;

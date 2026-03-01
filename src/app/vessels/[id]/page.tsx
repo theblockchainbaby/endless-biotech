@@ -17,7 +17,7 @@ import { LocationPicker } from "@/components/location-picker";
 import { PhotoCapture } from "@/components/photo-capture";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { HEALTH_STATUSES, HEALTH_STATUS_LABELS, CONTAMINATION_TYPES, STAGES } from "@/lib/constants";
-import type { Vessel, Photo } from "@/lib/types";
+import type { Vessel, Photo, Protocol } from "@/lib/types";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
 
@@ -27,6 +27,7 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
   const [vessel, setVessel] = useState<Vessel | null>(null);
   const [loading, setLoading] = useState(true);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [protocols, setProtocols] = useState<Protocol[]>([]);
 
   // Action states
   const [advanceNotes, setAdvanceNotes] = useState("");
@@ -55,10 +56,21 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
       .catch(() => {});
   };
 
+  const fetchProtocols = (stage: string) => {
+    fetch(`/api/protocols?stage=${stage}`)
+      .then((r) => r.json())
+      .then(setProtocols)
+      .catch(() => {});
+  };
+
   useEffect(() => {
     fetchVessel();
     fetchPhotos();
   }, [id]);
+
+  useEffect(() => {
+    if (vessel?.stage) fetchProtocols(vessel.stage);
+  }, [vessel?.stage]);
 
   const handleAdvanceStage = async () => {
     setAdvancing(true);
@@ -165,6 +177,33 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
           <StagePipeline currentStage={vessel.stage} />
         </CardContent>
       </Card>
+
+      {/* SOP for Current Stage */}
+      {protocols.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">SOP: {protocols[0].name}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {protocols[0].safetyNotes && (
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-2 text-sm text-amber-700 dark:text-amber-300">
+                {protocols[0].safetyNotes}
+              </div>
+            )}
+            {protocols[0].steps.map((step: { order: number; instruction: string; duration?: string; critical?: boolean }, i: number) => (
+              <div key={i} className="flex gap-3 items-start">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${step.critical ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300" : "bg-muted text-muted-foreground"}`}>
+                  {step.order}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm">{step.instruction}</p>
+                  {step.duration && <p className="text-xs text-muted-foreground">{step.duration}</p>}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Action Buttons */}
       {isActive && (

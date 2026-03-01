@@ -158,6 +158,24 @@ export const INVENTORY_CATEGORIES = [
 
 export const DEFAULT_SUBCULTURE_INTERVAL_DAYS = 14;
 
+export const PROTOCOL_STAGES = [
+  "initiation",
+  "multiplication",
+  "rooting",
+  "acclimation",
+  "hardening",
+  "media_prep",
+] as const;
+
+export const PROTOCOL_STAGE_LABELS: Record<string, string> = {
+  initiation: "Initiation",
+  multiplication: "Multiplication",
+  rooting: "Rooting",
+  acclimation: "Acclimation",
+  hardening: "Hardening",
+  media_prep: "Media Prep",
+};
+
 export const CULTIVAR_HEALTH_LABELS: Record<string, string> = {
   healthy: "Healthy",
   stable: "Stable",

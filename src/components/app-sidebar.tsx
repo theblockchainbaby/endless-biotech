@@ -16,6 +16,7 @@ import {
   TrendingUp,
   FileText,
   ClipboardList,
+  BookOpen,
   Tag,
   Settings,
   LogOut,
@@ -76,6 +77,7 @@ const navGroups = [
       { href: "/forecasting", label: "Forecasting", icon: TrendingUp },
       { href: "/reports", label: "Reports", icon: FileText },
       { href: "/activity", label: "Audit Log", icon: ClipboardList },
+      { href: "/protocols", label: "SOPs", icon: BookOpen },
     ],
   },
   {
