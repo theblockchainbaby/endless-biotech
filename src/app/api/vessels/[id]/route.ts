@@ -17,6 +17,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         cultivar: true,
         location: true,
         mediaRecipe: { include: { components: true } },
+        mediaBatch: { include: { recipe: { select: { id: true, name: true } }, preparedBy: { select: { id: true, name: true } } } },
         parentVessel: { select: { id: true, barcode: true } },
         childVessels: { include: { cultivar: true }, orderBy: { createdAt: "desc" } },
         activities: { include: { user: { select: { id: true, name: true } } }, orderBy: { createdAt: "desc" } },

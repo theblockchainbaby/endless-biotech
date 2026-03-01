@@ -203,6 +203,8 @@ model MediaBatch {
   expiresAt    DateTime?
   notes        String?
   createdAt    DateTime    @default(now())
+
+  vessels Vessel[] @relation("BatchVessels")
 }
 
 // ==================== VESSEL ====================
@@ -214,6 +216,8 @@ model Vessel {
   cultivar           Cultivar? @relation(fields: [cultivarId], references: [id])
   mediaRecipeId      String?
   mediaRecipe        MediaRecipe? @relation(fields: [mediaRecipeId], references: [id])
+  mediaBatchId       String?
+  mediaBatch         MediaBatch? @relation("BatchVessels", fields: [mediaBatchId], references: [id])
   locationId         String?
   location           Location? @relation(fields: [locationId], references: [id])
   explantCount       Int       @default(0)

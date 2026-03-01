@@ -43,6 +43,7 @@ export interface Vessel {
   barcode: string;
   cultivarId: string | null;
   mediaRecipeId: string | null;
+  mediaBatchId: string | null;
   locationId: string | null;
   explantCount: number;
   healthStatus: string;
@@ -63,6 +64,7 @@ export interface Vessel {
   // Relations
   cultivar?: Cultivar | null;
   mediaRecipe?: MediaRecipe | null;
+  mediaBatch?: MediaBatch | null;
   location?: Location | null;
   parentVessel?: { id: string; barcode: string } | null;
   childVessels?: { id: string; barcode: string; status: string }[];

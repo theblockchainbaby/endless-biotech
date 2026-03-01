@@ -260,7 +260,7 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
             <span>{vessel.cultivar?.name || "—"}</span>
             <span className="text-muted-foreground">Species</span>
             <span>{vessel.cultivar?.species || "—"}</span>
-            <span className="text-muted-foreground">Media</span>
+            <span className="text-muted-foreground">Media Recipe</span>
             <span>{vessel.mediaRecipe?.name || "—"}</span>
             <span className="text-muted-foreground">Stage</span>
             <StageBadge stage={vessel.stage} />
@@ -307,6 +307,33 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
           </div>
         </CardContent>
       </Card>
+
+      {/* Media Batch Traceability */}
+      {vessel.mediaBatch && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Media Batch</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
+              <span className="text-muted-foreground">Batch Number</span>
+              <span className="font-mono font-medium">{vessel.mediaBatch.batchNumber}</span>
+              <span className="text-muted-foreground">Recipe</span>
+              <span>{vessel.mediaBatch.recipe?.name ?? "—"}</span>
+              <span className="text-muted-foreground">Volume</span>
+              <span>{vessel.mediaBatch.volumeL}L</span>
+              <span className="text-muted-foreground">Measured pH</span>
+              <span>{vessel.mediaBatch.measuredPH ?? "—"}</span>
+              <span className="text-muted-foreground">Autoclaved</span>
+              <span>{vessel.mediaBatch.autoclaved ? "Yes" : "No"}</span>
+              <span className="text-muted-foreground">Prepared By</span>
+              <span>{vessel.mediaBatch.preparedBy?.name ?? "—"}</span>
+              <span className="text-muted-foreground">Prepared On</span>
+              <span>{format(new Date(vessel.mediaBatch.createdAt), "MMM d, yyyy h:mm a")}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Photos */}
       <Card>

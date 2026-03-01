@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/page-header";
 import type { MediaBatch, MediaRecipe } from "@/lib/types";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { FlaskConical, X } from "lucide-react";
 
 export default function MediaBatchesPage() {
   const [batches, setBatches] = useState<MediaBatch[]>([]);
@@ -30,6 +31,13 @@ export default function MediaBatchesPage() {
   const [measuredPH, setMeasuredPH] = useState("");
   const [autoclaved, setAutoclaved] = useState(false);
   const [notes, setNotes] = useState("");
+
+  // Pour state
+  const [pourDialogOpen, setPourDialogOpen] = useState(false);
+  const [pourBatch, setPourBatch] = useState<MediaBatch | null>(null);
+  const [pourBarcode, setPourBarcode] = useState("");
+  const [pourBarcodes, setPourBarcodes] = useState<string[]>([]);
+  const [pouring, setPouring] = useState(false);
 
   const fetchBatches = useCallback(async () => {
     setLoading(true);
@@ -89,6 +97,52 @@ export default function MediaBatchesPage() {
       }
     } finally {
       setCreating(false);
+    }
+  };
+
+  const openPourDialog = (batch: MediaBatch) => {
+    setPourBatch(batch);
+    setPourBarcodes([]);
+    setPourBarcode("");
+    setPourDialogOpen(true);
+  };
+
+  const addPourBarcode = () => {
+    const code = pourBarcode.trim();
+    if (!code) return;
+    if (pourBarcodes.includes(code)) {
+      toast.error("Barcode already added");
+      return;
+    }
+    setPourBarcodes([...pourBarcodes, code]);
+    setPourBarcode("");
+  };
+
+  const removePourBarcode = (code: string) => {
+    setPourBarcodes(pourBarcodes.filter((b) => b !== code));
+  };
+
+  const handlePour = async () => {
+    if (!pourBatch || pourBarcodes.length === 0) return;
+    setPouring(true);
+    try {
+      const res = await fetch(`/api/media-batches/${pourBatch.id}/pour`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ barcodes: pourBarcodes }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`Poured into ${data.created + data.updated} vessels (${data.created} new, ${data.updated} updated)`);
+        setPourDialogOpen(false);
+        setPourBatch(null);
+        setPourBarcodes([]);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Pour failed");
+      }
+    } finally {
+      setPouring(false);
     }
   };
 
@@ -187,6 +241,7 @@ export default function MediaBatchesPage() {
                 <TableHead>Autoclaved</TableHead>
                 <TableHead>Prepared By</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -200,12 +255,71 @@ export default function MediaBatchesPage() {
                   <TableCell>{b.autoclaved ? <Badge>Yes</Badge> : <Badge variant="outline">No</Badge>}</TableCell>
                   <TableCell>{b.preparedBy?.name ?? "—"}</TableCell>
                   <TableCell>{format(new Date(b.createdAt), "MMM d, yyyy")}</TableCell>
+                  <TableCell>
+                    <Button variant="outline" size="sm" onClick={() => openPourDialog(b)}>
+                      <FlaskConical className="mr-1 size-3" />
+                      Pour
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
       )}
+
+      {/* Pour Vessels Dialog */}
+      <Dialog open={pourDialogOpen} onOpenChange={setPourDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Pour Vessels — {pourBatch?.batchNumber}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Scan or type vessel barcodes to assign them to batch{" "}
+            <span className="font-mono font-medium">{pourBatch?.batchNumber}</span>{" "}
+            ({pourBatch?.recipe?.name}).
+          </p>
+          <form
+            onSubmit={(e) => { e.preventDefault(); addPourBarcode(); }}
+            className="flex gap-2"
+          >
+            <Input
+              value={pourBarcode}
+              onChange={(e) => setPourBarcode(e.target.value)}
+              placeholder="Scan or type barcode..."
+              className="flex-1 text-lg h-12"
+              autoFocus
+            />
+            <Button type="submit" size="lg" disabled={!pourBarcode.trim()}>
+              Add
+            </Button>
+          </form>
+
+          {pourBarcodes.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">{pourBarcodes.length} vessel{pourBarcodes.length !== 1 ? "s" : ""}</p>
+              <div className="flex flex-wrap gap-2">
+                {pourBarcodes.map((code) => (
+                  <Badge key={code} variant="secondary" className="font-mono text-sm py-1 px-2">
+                    {code}
+                    <button onClick={() => removePourBarcode(code)} className="ml-1.5 hover:text-destructive">
+                      <X className="size-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <Button
+            onClick={handlePour}
+            disabled={pouring || pourBarcodes.length === 0}
+            className="w-full"
+          >
+            {pouring ? "Pouring..." : `Pour into ${pourBarcodes.length} Vessel${pourBarcodes.length !== 1 ? "s" : ""}`}
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
