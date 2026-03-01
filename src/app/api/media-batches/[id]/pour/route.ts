@@ -42,8 +42,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           vessel = await prisma.vessel.update({
             where: { id: vessel.id },
             data: {
-              mediaBatchId: batch.id,
-              mediaRecipeId: batch.recipeId,
+              mediaBatch: { connect: { id: batch.id } },
+              mediaRecipe: { connect: { id: batch.recipeId } },
               status: "media_filled",
             },
           });
@@ -61,10 +61,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           vessel = await prisma.vessel.create({
             data: {
               barcode,
-              mediaBatchId: batch.id,
-              mediaRecipeId: batch.recipeId,
+              mediaBatch: { connect: { id: batch.id } },
+              mediaRecipe: { connect: { id: batch.recipeId } },
               status: "media_filled",
-              organizationId: user.organizationId,
+              organization: { connect: { id: user.organizationId } },
             },
           });
 
