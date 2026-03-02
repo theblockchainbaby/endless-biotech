@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { USER_ROLE_LABELS } from "@/lib/constants";
 import { NotificationBell } from "@/components/notification-bell";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { PinSwitch } from "@/components/pin-switch";
 
 const navGroups = [
@@ -143,7 +144,8 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarHeader>
 
-      <div className="px-3 pb-2 flex justify-end group-data-[collapsible=icon]:hidden">
+      <div className="px-3 pb-2 flex justify-end gap-1 group-data-[collapsible=icon]:hidden">
+        <ThemeToggle />
         <NotificationBell />
       </div>
 

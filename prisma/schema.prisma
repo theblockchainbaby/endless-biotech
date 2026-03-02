@@ -67,6 +67,7 @@ model User {
   inventoryUsages InventoryUsage[] @relation("UsageBy")
 
   @@index([organizationId])
+  @@index([organizationId, role])
   @@index([email])
 }
 
@@ -126,6 +127,7 @@ model Location {
   environmentReadings EnvironmentReading[]
 
   @@index([siteId])
+  @@index([siteId, isActive])
   @@index([parentId])
 }
 
@@ -246,6 +248,10 @@ model Vessel {
 
   @@index([organizationId, status])
   @@index([organizationId, cultivarId])
+  @@index([organizationId, stage])
+  @@index([organizationId, healthStatus])
+  @@index([organizationId, nextSubcultureDate])
+  @@index([healthStatus, contaminationType])
   @@index([barcode])
   @@index([locationId])
   @@index([nextSubcultureDate])
@@ -271,6 +277,8 @@ model Activity {
   @@index([userId])
   @@index([type])
   @@index([createdAt])
+  @@index([createdAt, vesselId])
+  @@index([type, createdAt])
 }
 
 // ==================== PHOTO ====================

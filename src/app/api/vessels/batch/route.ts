@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, handleApiError, parseBody } from "@/lib/api-helpers";
+import { requireAuth, handleApiError, parseBody, ApiError } from "@/lib/api-helpers";
 import { batchOperationSchema } from "@/lib/validations";
 import { logActivity } from "@/lib/activity-logger";
 import { sendBatchDisposeAlert } from "@/lib/email";
@@ -12,6 +12,10 @@ export async function POST(req: NextRequest) {
   try {
     const user = await requireAuth();
     const body = await parseBody(req, batchOperationSchema);
+
+    if (body.vesselIds.length > 1000) {
+      throw new ApiError("Batch size limited to 1000 vessels per operation", 400);
+    }
 
     const vessels = await prisma.vessel.findMany({
       where: { id: { in: body.vesselIds }, organizationId: user.organizationId },

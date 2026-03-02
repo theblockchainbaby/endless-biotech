@@ -7,6 +7,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { SessionProvider } from "@/components/session-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ServiceWorkerRegister } from "@/components/sw-register";
+import { ThemeProvider } from "next-themes";
+import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,26 +40,29 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#16a34a" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SessionProvider>
-          <TooltipProvider>
-            <SidebarProvider>
-              <AppSidebar />
-              <SidebarInset>
-                <main className="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full">
-                  {children}
-                </main>
-              </SidebarInset>
-            </SidebarProvider>
-          </TooltipProvider>
-          <Toaster />
-          <ServiceWorkerRegister />
-        </SessionProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <SessionProvider>
+            <TooltipProvider>
+              <SidebarProvider>
+                <AppSidebar />
+                <SidebarInset>
+                  <main className="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full">
+                    {children}
+                  </main>
+                </SidebarInset>
+              </SidebarProvider>
+            </TooltipProvider>
+            <Toaster />
+            <ServiceWorkerRegister />
+            <KeyboardShortcuts />
+          </SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

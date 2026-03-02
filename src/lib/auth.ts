@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
+import { rateLimit } from "./rate-limit";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -20,6 +21,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+
+        // Rate limit: 10 login attempts per minute per email
+        const { allowed } = rateLimit(`login:${credentials.email}`, { max: 10, windowMs: 60_000 });
+        if (!allowed) return null;
 
         const user = await prisma.user.findFirst({
           where: { email: { equals: credentials.email as string, mode: "insensitive" } },
@@ -54,6 +59,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.pin || !credentials?.organizationId) return null;
+
+        // Rate limit: 5 PIN attempts per minute per org
+        const { allowed } = rateLimit(`pin:${credentials.organizationId}`, { max: 5, windowMs: 60_000 });
+        if (!allowed) return null;
 
         const user = await prisma.user.findFirst({
           where: {
