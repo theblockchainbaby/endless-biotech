@@ -9,16 +9,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/page-header";
 import { USER_ROLES, USER_ROLE_LABELS } from "@/lib/constants";
 import type { UserProfile } from "@/lib/types";
 import { toast } from "sonner";
+
+interface OrgSettings {
+  defaultSubcultureDays?: number;
+  defaultMultiplicationRate?: number;
+  alertOnContamination?: boolean;
+  alertOnLowInventory?: boolean;
+  alertOnSubcultureDue?: boolean;
+  alertOnEnvironmentOutOfRange?: boolean;
+  emailFrom?: string;
+  timezone?: string;
+}
 
 export default function AdminPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+
+  // Org settings
+  const [orgName, setOrgName] = useState("");
+  const [orgPlan, setOrgPlan] = useState("");
+  const [settings, setSettings] = useState<OrgSettings>({});
+  const [savingSettings, setSavingSettings] = useState(false);
 
   // New user form
   const [name, setName] = useState("");
@@ -40,8 +58,39 @@ export default function AdminPage() {
       .finally(() => setLoading(false));
   };
 
+  const fetchOrgSettings = () => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        setOrgName(data.name || "");
+        setOrgPlan(data.plan || "pro");
+        setSettings((data.settings as OrgSettings) || {});
+      })
+      .catch(() => {});
+  };
+
+  const saveOrgSettings = async () => {
+    setSavingSettings(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: orgName, settings }),
+      });
+      if (res.ok) {
+        toast.success("Settings saved");
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Failed to save settings");
+      }
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchOrgSettings();
   }, []);
 
   const handleCreate = async () => {
@@ -244,6 +293,111 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       )}
+      <Separator />
+
+      {/* Organization Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Organization Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Organization Name</Label>
+              <Input value={orgName} onChange={(e) => setOrgName(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label>Plan</Label>
+              <Input value={orgPlan} disabled className="mt-1 bg-muted" />
+            </div>
+          </div>
+
+          <Separator />
+
+          <div>
+            <p className="text-sm font-medium mb-3">Culture Defaults</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Default Subculture Interval (days)</Label>
+                <Input
+                  type="number"
+                  value={settings.defaultSubcultureDays ?? 14}
+                  onChange={(e) => setSettings({ ...settings, defaultSubcultureDays: parseInt(e.target.value) || 14 })}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Default Multiplication Rate</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={settings.defaultMultiplicationRate ?? 3.0}
+                  onChange={(e) => setSettings({ ...settings, defaultMultiplicationRate: parseFloat(e.target.value) || 3.0 })}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div>
+            <p className="text-sm font-medium mb-3">Email Alert Preferences</p>
+            <div className="space-y-3">
+              <ToggleSetting
+                label="Contamination alerts"
+                description="Email admins/managers when a vessel is marked contaminated"
+                checked={settings.alertOnContamination !== false}
+                onChange={(v) => setSettings({ ...settings, alertOnContamination: v })}
+              />
+              <ToggleSetting
+                label="Low inventory alerts"
+                description="Daily email when stock falls below reorder level"
+                checked={settings.alertOnLowInventory !== false}
+                onChange={(v) => setSettings({ ...settings, alertOnLowInventory: v })}
+              />
+              <ToggleSetting
+                label="Subculture reminders"
+                description="Daily email for overdue and due-today subcultures"
+                checked={settings.alertOnSubcultureDue !== false}
+                onChange={(v) => setSettings({ ...settings, alertOnSubcultureDue: v })}
+              />
+              <ToggleSetting
+                label="Environment out-of-range"
+                description="Alert when temperature/humidity/CO2 exceed thresholds"
+                checked={settings.alertOnEnvironmentOutOfRange !== false}
+                onChange={(v) => setSettings({ ...settings, alertOnEnvironmentOutOfRange: v })}
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          <div>
+            <p className="text-sm font-medium mb-3">Timezone</p>
+            <Select
+              value={settings.timezone || "America/New_York"}
+              onValueChange={(v) => setSettings({ ...settings, timezone: v })}
+            >
+              <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="America/New_York">Eastern (ET)</SelectItem>
+                <SelectItem value="America/Chicago">Central (CT)</SelectItem>
+                <SelectItem value="America/Denver">Mountain (MT)</SelectItem>
+                <SelectItem value="America/Los_Angeles">Pacific (PT)</SelectItem>
+                <SelectItem value="UTC">UTC</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button onClick={saveOrgSettings} disabled={savingSettings}>
+            {savingSettings ? "Saving..." : "Save Settings"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Separator />
+
       {/* Change Password */}
       <Card>
         <CardHeader>
@@ -268,5 +422,32 @@ export default function AdminPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function ToggleSetting({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex items-start gap-3 cursor-pointer">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 h-4 w-4 rounded border-gray-300"
+      />
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+    </label>
   );
 }

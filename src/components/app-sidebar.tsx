@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -21,6 +22,8 @@ import {
   Settings,
   LogOut,
   ChevronDown,
+  Upload,
+  Users,
 } from "lucide-react";
 import {
   Sidebar,
@@ -45,6 +48,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { USER_ROLE_LABELS } from "@/lib/constants";
 import { NotificationBell } from "@/components/notification-bell";
+import { PinSwitch } from "@/components/pin-switch";
 
 const navGroups = [
   {
@@ -59,6 +63,7 @@ const navGroups = [
     items: [
       { href: "/vessels", label: "Vessels", icon: FlaskConical },
       { href: "/batch", label: "Batch Ops", icon: Layers },
+      { href: "/import", label: "CSV Import", icon: Upload },
       { href: "/cultivars", label: "Cultivars", icon: Leaf },
       { href: "/media", label: "Media", icon: TestTubes },
     ],
@@ -92,6 +97,7 @@ const navGroups = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const [pinSwitchOpen, setPinSwitchOpen] = useState(false);
 
   const user = session?.user;
   const initials = user?.name
@@ -210,6 +216,10 @@ export function AppSidebar() {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setPinSwitchOpen(true)}>
+                  <Users className="mr-2 size-4" />
+                  Quick Switch (PIN)
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/login" })}>
                   <LogOut className="mr-2 size-4" />
                   Sign out
@@ -219,6 +229,7 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      <PinSwitch open={pinSwitchOpen} onOpenChange={setPinSwitchOpen} />
     </Sidebar>
   );
 }

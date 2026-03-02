@@ -51,8 +51,12 @@ export function handleApiError(error: unknown) {
     return NextResponse.json({ error: error.message }, { status: error.status });
   }
   if (error instanceof ZodError) {
+    const messages = error.issues.map((i) => {
+      const path = i.path.length > 0 ? `${i.path.join(".")}: ` : "";
+      return `${path}${i.message}`;
+    });
     return NextResponse.json(
-      { error: "Validation failed", details: error.issues },
+      { error: messages.join("; "), details: error.issues },
       { status: 400 }
     );
   }

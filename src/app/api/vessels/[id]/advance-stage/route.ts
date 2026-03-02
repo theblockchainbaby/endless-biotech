@@ -16,11 +16,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const vessel = await prisma.vessel.findFirst({
       where: { id, organizationId: user.organizationId },
     });
-    if (!vessel) return NextResponse.json({ error: "Vessel not found" }, { status: 404 });
+    if (!vessel) return NextResponse.json({ error: "Vessel not found. It may have been deleted or belongs to another organization." }, { status: 404 });
+
+    if (vessel.status === "disposed") {
+      return NextResponse.json({ error: "Cannot advance a disposed vessel. Undo the disposal first." }, { status: 400 });
+    }
 
     const currentIndex = stageOrder.indexOf(vessel.stage as typeof stageOrder[number]);
     if (currentIndex === -1 || currentIndex >= stageOrder.length - 1) {
-      return NextResponse.json({ error: "Cannot advance past final stage" }, { status: 400 });
+      return NextResponse.json({ error: `Vessel is already at the final stage (${vessel.stage}). No further stages available.` }, { status: 400 });
     }
 
     const nextStage = stageOrder[currentIndex + 1];

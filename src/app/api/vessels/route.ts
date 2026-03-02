@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, handleApiError, parseBody } from "@/lib/api-helpers";
+import { requireAuth, handleApiError, parseBody, ApiError } from "@/lib/api-helpers";
 import { createVesselSchema } from "@/lib/validations";
 import { logActivity } from "@/lib/activity-logger";
 
@@ -53,6 +53,18 @@ export async function POST(req: NextRequest) {
   try {
     const user = await requireAuth();
     const body = await parseBody(req, createVesselSchema);
+
+    // Duplicate barcode prevention
+    const existing = await prisma.vessel.findFirst({
+      where: { barcode: body.barcode, organizationId: user.organizationId },
+      select: { id: true, barcode: true, status: true },
+    });
+    if (existing) {
+      throw new ApiError(
+        `Barcode "${body.barcode}" already exists (status: ${existing.status}). Each vessel must have a unique barcode.`,
+        409
+      );
+    }
 
     const vessel = await prisma.vessel.create({
       data: {

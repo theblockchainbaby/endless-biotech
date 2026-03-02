@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, handleApiError, parseBody } from "@/lib/api-helpers";
 import { batchOperationSchema } from "@/lib/validations";
 import { logActivity } from "@/lib/activity-logger";
+import { sendBatchDisposeAlert } from "@/lib/email";
 import { STAGES, DEFAULT_SUBCULTURE_INTERVAL_DAYS } from "@/lib/constants";
 
 const stageOrder = STAGES;
@@ -107,6 +108,27 @@ export async function POST(req: NextRequest) {
     }
 
     const successCount = results.filter((r) => r.success).length;
+
+    // Send email alert for batch disposal
+    if (body.action === "dispose" && successCount > 0) {
+      const managers = await prisma.user.findMany({
+        where: {
+          organizationId: user.organizationId,
+          role: { in: ["admin", "manager"] },
+          isActive: true,
+        },
+        select: { email: true },
+      });
+      if (managers.length > 0) {
+        sendBatchDisposeAlert({
+          vesselCount: successCount,
+          disposedBy: user.name,
+          reason: (body.params?.reason as string) || "Batch disposal",
+          recipientEmails: managers.map((m) => m.email),
+        }).catch(() => {});
+      }
+    }
+
     return NextResponse.json({ results, total: vessels.length, success: successCount, failed: vessels.length - successCount });
   } catch (error) {
     return handleApiError(error);

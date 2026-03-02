@@ -72,10 +72,9 @@ export default function MultiplyPage({ params }: { params: Promise<{ id: string 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          newVessels: newVessels.map((v) => ({
+          children: newVessels.map((v) => ({
             barcode: v.barcode,
             explantCount: v.explantCount,
-            mediaType: v.mediaType || null,
             notes: v.notes || null,
           })),
         }),

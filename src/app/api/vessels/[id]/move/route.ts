@@ -14,13 +14,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       where: { id, organizationId: user.organizationId },
       include: { location: { select: { id: true, name: true } } },
     });
-    if (!vessel) return NextResponse.json({ error: "Vessel not found" }, { status: 404 });
+    if (!vessel) return NextResponse.json({ error: "Vessel not found. It may have been deleted or belongs to another organization." }, { status: 404 });
+
+    if (vessel.status === "disposed") {
+      return NextResponse.json({ error: "Cannot move a disposed vessel." }, { status: 400 });
+    }
 
     // Verify location belongs to user's org
     const location = await prisma.location.findFirst({
       where: { id: body.locationId, site: { organizationId: user.organizationId } },
     });
-    if (!location) return NextResponse.json({ error: "Location not found" }, { status: 404 });
+    if (!location) return NextResponse.json({ error: "Destination location not found. It may have been deactivated." }, { status: 404 });
 
     const previousLocation = vessel.location;
 

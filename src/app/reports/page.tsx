@@ -12,10 +12,11 @@ type ReportType = "vessels" | "activity" | "production" | "contamination";
 
 export default function ReportsPage() {
   const [reportType, setReportType] = useState<ReportType>("vessels");
-  const [generating, setGenerating] = useState(false);
+  const [generatingCSV, setGeneratingCSV] = useState(false);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
 
-  const generateReport = async () => {
-    setGenerating(true);
+  const generateCSV = async () => {
+    setGeneratingCSV(true);
     try {
       switch (reportType) {
         case "vessels": {
@@ -87,15 +88,46 @@ export default function ReportsPage() {
     } catch {
       toast.error("Failed to generate report");
     } finally {
-      setGenerating(false);
+      setGeneratingCSV(false);
     }
+  };
+
+  const generatePDF = async () => {
+    setGeneratingPDF(true);
+    try {
+      const res = await fetch(`/api/reports/pdf?type=${reportType}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to generate PDF");
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `vitros-${reportType}-report-${new Date().toISOString().split("T")[0]}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("PDF report downloaded");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate PDF");
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
+
+  const reportDescriptions: Record<ReportType, string> = {
+    vessels: "Complete vessel inventory with cultivar, stage, status, health, and location data.",
+    activity: "Full audit trail of all vessel operations with timestamps and user attribution.",
+    production: "Summary of active vessels, pipeline stages, cultivar breakdown, and key metrics.",
+    contamination: "Contamination breakdown by type and cultivar over the past quarter.",
   };
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       <PageHeader
         title="Reports"
-        description="Generate and download reports"
+        description="Generate and download reports as CSV or PDF"
       />
 
       <Card>
@@ -115,44 +147,48 @@ export default function ReportsPage() {
             </Select>
           </div>
 
-          <div className="text-sm text-muted-foreground">
-            {reportType === "vessels" && "Export all vessels with cultivar, stage, status, health, and location data."}
-            {reportType === "activity" && "Export the complete activity log with vessel references and timestamps."}
-            {reportType === "production" && "Summary of active vessels, pipeline stages, cultivar breakdown, and key metrics."}
-            {reportType === "contamination" && "Contamination breakdown by type and cultivar over the past quarter."}
-          </div>
+          <p className="text-sm text-muted-foreground">{reportDescriptions[reportType]}</p>
 
-          <Button onClick={generateReport} disabled={generating} className="w-full">
-            {generating ? "Generating..." : "Download CSV Report"}
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={generateCSV} disabled={generatingCSV} variant="outline" className="flex-1">
+              {generatingCSV ? "Generating..." : "Download CSV"}
+            </Button>
+            <Button onClick={generatePDF} disabled={generatingPDF} className="flex-1">
+              {generatingPDF ? "Generating..." : "Download PDF"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Available Reports</CardTitle>
+          <CardTitle className="text-base">Quick Download</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             <ReportOption
               title="Vessel Report"
               description="Complete vessel inventory with all metadata"
-              onClick={() => { setReportType("vessels"); generateReport(); }}
+              onCSV={() => { setReportType("vessels"); generateCSV(); }}
+              onPDF={() => { setReportType("vessels"); generatePDF(); }}
             />
             <ReportOption
               title="Activity Log"
               description="Full audit trail of all vessel operations"
-              onClick={() => { setReportType("activity"); generateReport(); }}
+              onCSV={() => { setReportType("activity"); generateCSV(); }}
+              onPDF={() => { setReportType("activity"); generatePDF(); }}
             />
             <ReportOption
               title="Production Summary"
               description="KPIs, pipeline stages, and cultivar metrics"
-              onClick={() => { setReportType("production"); generateReport(); }}
+              onCSV={() => { setReportType("production"); generateCSV(); }}
+              onPDF={() => { setReportType("production"); generatePDF(); }}
             />
             <ReportOption
               title="Contamination Report"
               description="Contamination rates by type and cultivar"
-              onClick={() => { setReportType("contamination"); generateReport(); }}
+              onCSV={() => { setReportType("contamination"); generateCSV(); }}
+              onPDF={() => { setReportType("contamination"); generatePDF(); }}
             />
           </div>
         </CardContent>
@@ -161,17 +197,37 @@ export default function ReportsPage() {
   );
 }
 
-function ReportOption({ title, description, onClick }: { title: string; description: string; onClick: () => void }) {
+function ReportOption({
+  title,
+  description,
+  onCSV,
+  onPDF,
+}: {
+  title: string;
+  description: string;
+  onCSV: () => void;
+  onPDF: () => void;
+}) {
   return (
-    <button
-      onClick={onClick}
-      className="w-full text-left p-3 rounded-md border hover:bg-accent/50 transition-colors flex items-center justify-between"
-    >
+    <div className="flex items-center justify-between p-3 rounded-md border">
       <div>
         <p className="font-medium text-sm">{title}</p>
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
-      <span className="text-xs text-muted-foreground">CSV</span>
-    </button>
+      <div className="flex gap-1.5 shrink-0 ml-3">
+        <button
+          onClick={onCSV}
+          className="text-xs px-2 py-1 rounded border hover:bg-accent transition-colors"
+        >
+          CSV
+        </button>
+        <button
+          onClick={onPDF}
+          className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+        >
+          PDF
+        </button>
+      </div>
+    </div>
   );
 }

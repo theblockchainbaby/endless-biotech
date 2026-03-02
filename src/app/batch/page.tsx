@@ -13,6 +13,7 @@ import { StageBadge, HealthBadge } from "@/components/status-badge";
 import { LocationPicker } from "@/components/location-picker";
 import { HEALTH_STATUSES, HEALTH_STATUS_LABELS } from "@/lib/constants";
 import type { Vessel } from "@/lib/types";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { toast } from "sonner";
 
 type BatchAction = "advance_stage" | "move" | "health_check" | "dispose";
@@ -23,6 +24,7 @@ export default function BatchOperationsPage() {
   const [scanning, setScanning] = useState(false);
   const [action, setAction] = useState<BatchAction>("advance_stage");
   const [executing, setExecuting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Action params
@@ -247,12 +249,39 @@ export default function BatchOperationsPage() {
               </div>
             )}
 
-            <Button onClick={executeBatch} disabled={executing} className="w-full" variant={action === "dispose" ? "destructive" : "default"}>
+            <Button
+              onClick={() => {
+                if (action === "dispose" || action === "health_check") {
+                  setConfirmOpen(true);
+                } else {
+                  executeBatch();
+                }
+              }}
+              disabled={executing}
+              className="w-full"
+              variant={action === "dispose" ? "destructive" : "default"}
+            >
               {executing ? "Processing..." : `Apply to ${scannedVessels.length} Vessel${scannedVessels.length > 1 ? "s" : ""}`}
             </Button>
           </CardContent>
         </Card>
       )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={action === "dispose"
+          ? `Dispose ${scannedVessels.length} vessel${scannedVessels.length > 1 ? "s" : ""}?`
+          : `Update health on ${scannedVessels.length} vessel${scannedVessels.length > 1 ? "s" : ""}?`
+        }
+        description={action === "dispose"
+          ? "This will permanently mark these vessels as disposed. This is difficult to reverse."
+          : `This will change the health status of ${scannedVessels.length} vessel${scannedVessels.length > 1 ? "s" : ""} to "${healthStatus}".`
+        }
+        confirmLabel={action === "dispose" ? "Dispose All" : "Update All"}
+        destructive={action === "dispose"}
+        onConfirm={executeBatch}
+      />
     </div>
   );
 }

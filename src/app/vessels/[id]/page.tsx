@@ -18,6 +18,7 @@ import { PhotoCapture } from "@/components/photo-capture";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { HEALTH_STATUSES, HEALTH_STATUS_LABELS, CONTAMINATION_TYPES, STAGES } from "@/lib/constants";
 import type { Vessel, Photo, Protocol } from "@/lib/types";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
 
@@ -41,6 +42,8 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
   const [moveLocationId, setMoveLocationId] = useState("");
   const [moveNotes, setMoveNotes] = useState("");
   const [moving, setMoving] = useState(false);
+  const [advanceConfirmOpen, setAdvanceConfirmOpen] = useState(false);
+  const [undoing, setUndoing] = useState(false);
 
   const fetchVessel = () => {
     fetch(`/api/vessels/${id}`)
@@ -120,6 +123,25 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
       }
     } finally {
       setUpdatingHealth(false);
+    }
+  };
+
+  const handleUndo = async () => {
+    setUndoing(true);
+    try {
+      const res = await fetch(`/api/vessels/${id}/undo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) {
+        toast.success("Last action undone");
+        fetchVessel();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Cannot undo");
+      }
+    } finally {
+      setUndoing(false);
     }
   };
 
@@ -215,10 +237,13 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
             Multiply
           </Button>
           {canAdvance && (
-            <Button size="sm" variant="secondary" onClick={handleAdvanceStage} disabled={advancing}>
+            <Button size="sm" variant="secondary" onClick={() => setAdvanceConfirmOpen(true)} disabled={advancing}>
               {advancing ? "Advancing..." : "Advance Stage"}
             </Button>
           )}
+          <Button size="sm" variant="ghost" onClick={handleUndo} disabled={undoing}>
+            {undoing ? "Undoing..." : "Undo Last"}
+          </Button>
           <Dialog open={healthDialogOpen} onOpenChange={setHealthDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline">Health Check</Button>
@@ -459,6 +484,15 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={advanceConfirmOpen}
+        onOpenChange={setAdvanceConfirmOpen}
+        title={`Advance to next stage?`}
+        description={`This will move vessel ${vessel.barcode} from "${vessel.stage}" to the next stage. This change is logged and can be undone within 30 minutes.`}
+        confirmLabel="Advance Stage"
+        onConfirm={handleAdvanceStage}
+      />
     </div>
   );
 }

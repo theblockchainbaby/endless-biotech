@@ -14,7 +14,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       include: { cultivar: true },
     });
 
-    if (!parent) return NextResponse.json({ error: "Parent vessel not found" }, { status: 404 });
+    if (!parent) return NextResponse.json({ error: "Parent vessel not found. It may have been deleted or belongs to another organization." }, { status: 404 });
+
+    if (parent.status === "disposed") {
+      return NextResponse.json({ error: "Cannot multiply a disposed vessel." }, { status: 400 });
+    }
+    if (parent.status === "multiplied") {
+      return NextResponse.json({ error: "This vessel has already been multiplied. View its child vessels instead." }, { status: 400 });
+    }
+
+    // Check for duplicate barcodes among children
+    const childBarcodes = body.children.map((c) => c.barcode);
+    const existingBarcodes = await prisma.vessel.findMany({
+      where: { barcode: { in: childBarcodes }, organizationId: user.organizationId },
+      select: { barcode: true },
+    });
+    if (existingBarcodes.length > 0) {
+      const dupes = existingBarcodes.map((e) => e.barcode).join(", ");
+      return NextResponse.json({ error: `These barcodes already exist: ${dupes}` }, { status: 409 });
+    }
 
     const created = await prisma.$transaction(async (tx) => {
       // Mark parent as multiplied
