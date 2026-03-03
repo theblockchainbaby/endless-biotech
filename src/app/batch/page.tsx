@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -159,6 +160,21 @@ export default function BatchOperationsPage() {
         title="Batch Operations"
         description="Scan multiple vessels and apply operations in bulk"
       />
+
+      {/* Quick action: Batch Multiply */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">Batch Multiply</p>
+              <p className="text-xs text-muted-foreground">Scan parents and their offspring to record multiplications in bulk</p>
+            </div>
+            <Link href="/batch/multiply">
+              <Button variant="outline" size="sm">Open</Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Scanner */}
       <Card>
