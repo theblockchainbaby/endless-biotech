@@ -54,16 +54,34 @@ export async function POST(req: NextRequest) {
     const user = await requireAuth();
     const body = await parseBody(req, createVesselSchema);
 
-    // Duplicate barcode prevention
+    // Duplicate barcode prevention — allow reuse if previous vessel is disposed/multiplied
     const existing = await prisma.vessel.findFirst({
       where: { barcode: body.barcode, organizationId: user.organizationId },
       select: { id: true, barcode: true, status: true },
     });
     if (existing) {
-      throw new ApiError(
-        `Barcode "${body.barcode}" already exists (status: ${existing.status}). Each vessel must have a unique barcode.`,
-        409
-      );
+      if (existing.status === "disposed" || existing.status === "multiplied") {
+        // Archive the old vessel by appending a timestamp suffix to its barcode
+        const archiveBarcode = `${existing.barcode}__archived_${Date.now()}`;
+        await prisma.vessel.update({
+          where: { id: existing.id },
+          data: { barcode: archiveBarcode },
+        });
+        await logActivity({
+          vesselId: existing.id,
+          userId: user.id,
+          type: "updated",
+          category: "vessel",
+          previousState: { barcode: body.barcode },
+          newState: { barcode: archiveBarcode },
+          notes: `Barcode ${body.barcode} freed for reuse — vessel archived`,
+        });
+      } else {
+        throw new ApiError(
+          `Barcode "${body.barcode}" is in use by an active vessel (status: ${existing.status}). Dispose the vessel first to reuse this barcode.`,
+          409
+        );
+      }
     }
 
     const vessel = await prisma.vessel.create({

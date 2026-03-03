@@ -20,6 +20,7 @@ export default function ScanPage() {
   const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
   const [existingVessel, setExistingVessel] = useState<Vessel | null>(null);
   const [isNew, setIsNew] = useState(false);
+  const [isReuse, setIsReuse] = useState(false);
   const [cultivars, setCultivars] = useState<Cultivar[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -41,18 +42,27 @@ export default function ScanPage() {
     try {
       const res = await fetch(`/api/vessels/barcode?code=${encodeURIComponent(barcode)}`);
       const data = await res.json();
-      if (data.found) {
+      if (data.found && !data.isDisposed) {
+        // Active vessel — show edit form
         setExistingVessel(data.vessel);
         setIsNew(false);
+        setIsReuse(false);
         setCultivarId(data.vessel.cultivarId || "");
         setExplantCount(String(data.vessel.explantCount));
         setHealthStatus(data.vessel.healthStatus);
         setStatus(data.vessel.status);
         setStage(data.vessel.stage || "initiation");
         setNotes(data.vessel.notes || "");
+      } else if (data.found && data.isDisposed) {
+        // Disposed/multiplied vessel — show reuse prompt
+        setExistingVessel(data.vessel);
+        setIsNew(false);
+        setIsReuse(true);
       } else {
+        // Brand new barcode
         setExistingVessel(null);
         setIsNew(true);
+        setIsReuse(false);
         setCultivarId("");
         setExplantCount("0");
         setHealthStatus("healthy");
@@ -116,10 +126,24 @@ export default function ScanPage() {
     }
   };
 
+  const handleStartNewRun = () => {
+    // Switch from reuse prompt to new vessel creation form
+    setIsReuse(false);
+    setIsNew(true);
+    setExistingVessel(null);
+    setCultivarId("");
+    setExplantCount("0");
+    setHealthStatus("healthy");
+    setStatus("media_filled");
+    setStage("initiation");
+    setNotes("");
+  };
+
   const handleReset = () => {
     setScannedBarcode(null);
     setExistingVessel(null);
     setIsNew(false);
+    setIsReuse(false);
   };
 
   return (
@@ -136,6 +160,44 @@ export default function ScanPage() {
         <Card>
           <CardContent className="pt-6 text-center">
             <p className="text-muted-foreground">Looking up barcode...</p>
+          </CardContent>
+        </Card>
+      ) : isReuse && existingVessel ? (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="font-mono text-lg">{scannedBarcode}</CardTitle>
+              <StatusBadge status={existingVessel.status} />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg bg-muted/50 p-4 space-y-2">
+              <p className="text-sm font-medium">Previous Run</p>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <span className="text-muted-foreground">Cultivar</span>
+                <span>{existingVessel.cultivar?.name || "—"}</span>
+                <span className="text-muted-foreground">Stage</span>
+                <span>{existingVessel.stage ? <StageBadge stage={existingVessel.stage} /> : "—"}</span>
+                <span className="text-muted-foreground">Health</span>
+                <HealthBadge status={existingVessel.healthStatus} />
+                <span className="text-muted-foreground">Explants</span>
+                <span>{existingVessel.explantCount}</span>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              This vessel was previously <strong>{existingVessel.status}</strong>. You can reuse the barcode to start a fresh run. The previous history will be preserved.
+            </p>
+            <div className="flex gap-2">
+              <Button onClick={handleStartNewRun} className="flex-1">
+                Start New Run
+              </Button>
+              <Button variant="outline" onClick={() => router.push(`/vessels/${existingVessel.id}`)}>
+                View Old Record
+              </Button>
+              <Button variant="outline" onClick={handleReset}>
+                Scan Another
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (

@@ -26,7 +26,9 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ found: !!vessel, vessel });
+    const isDisposed = vessel?.status === "disposed" || vessel?.status === "multiplied";
+
+    return NextResponse.json({ found: !!vessel, vessel, isDisposed });
   } catch (error) {
     return handleApiError(error);
   }
