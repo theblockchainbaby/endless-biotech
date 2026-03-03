@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
         where: { organizationId: org.id, status: "multiplied", updatedAt: { gte: weekAgo } },
       }),
       prisma.vessel.count({
-        where: { organizationId: org.id, healthStatus: "contaminated", contaminationDate: { gte: weekAgo } },
+        where: { organizationId: org.id, contaminationType: { not: null }, contaminationDate: { gte: weekAgo } },
       }),
       prisma.vessel.aggregate({
         where: { organizationId: org.id, status: { notIn: ["disposed"] } },

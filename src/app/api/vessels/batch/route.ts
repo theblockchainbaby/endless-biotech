@@ -105,6 +105,28 @@ export async function POST(req: NextRequest) {
             results.push({ id: vessel.id, barcode: vessel.barcode, success: true });
             break;
           }
+          case "assign_media": {
+            const mediaRecipeId = body.params?.mediaRecipeId as string;
+            if (!mediaRecipeId) {
+              results.push({ id: vessel.id, barcode: vessel.barcode, success: false, error: "Media recipe required" });
+              continue;
+            }
+            await prisma.vessel.update({
+              where: { id: vessel.id },
+              data: { mediaRecipeId },
+            });
+            await logActivity({
+              vesselId: vessel.id,
+              userId: user.id,
+              type: "updated",
+              category: "media",
+              previousState: { mediaRecipeId: vessel.mediaRecipeId },
+              newState: { mediaRecipeId },
+              notes: `Batch: media recipe assigned`,
+            });
+            results.push({ id: vessel.id, barcode: vessel.barcode, success: true });
+            break;
+          }
         }
       } catch {
         results.push({ id: vessel.id, barcode: vessel.barcode, success: false, error: "Operation failed" });

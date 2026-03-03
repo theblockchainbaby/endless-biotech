@@ -61,7 +61,6 @@ export async function GET(req: NextRequest) {
         _count: { id: true },
         where: {
           organizationId: orgId,
-          healthStatus: "contaminated",
           contaminationType: { not: null },
         },
       }),
@@ -72,7 +71,7 @@ export async function GET(req: NextRequest) {
         _count: { id: true },
         where: {
           organizationId: orgId,
-          healthStatus: "contaminated",
+          contaminationType: { not: null },
           cultivarId: { not: null },
         },
       }),
@@ -162,7 +161,7 @@ export async function GET(req: NextRequest) {
     // Contamination rate: contaminated / total active
     const totalActive = await prisma.vessel.count({ where: activeFilter });
     const totalContaminated = await prisma.vessel.count({
-      where: { ...activeFilter, healthStatus: "contaminated" },
+      where: { ...activeFilter, contaminationType: { not: null } },
     });
     const contaminationRate = totalActive > 0 ? (totalContaminated / totalActive) * 100 : 0;
 

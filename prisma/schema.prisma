@@ -224,7 +224,7 @@ model Vessel {
   locationId         String?
   location           Location? @relation(fields: [locationId], references: [id])
   explantCount       Int       @default(0)
-  healthStatus       String    @default("healthy")    // healthy, contaminated, slow_growth, necrotic, dead
+  healthStatus       String    @default("healthy")    // healthy, stable, critical, slow_growth, necrotic, vitrified, dead
   status             String    @default("media_filled") // media_filled, planted, growing, ready_to_multiply, multiplied, disposed
   stage              String    @default("initiation")   // initiation, multiplication, rooting, acclimation, hardening
   subcultureNumber   Int       @default(0)

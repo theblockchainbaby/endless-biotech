@@ -100,7 +100,7 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
     setUpdatingHealth(true);
     try {
       const body: Record<string, unknown> = { healthStatus };
-      if (healthStatus === "contaminated" && contaminationType) {
+      if (contaminationType) {
         body.contaminationType = contaminationType;
       }
       if (healthNotes) body.notes = healthNotes;
@@ -262,7 +262,7 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
                     </SelectContent>
                   </Select>
                 </div>
-                {healthStatus === "contaminated" && (
+                {(healthStatus === "critical" || healthStatus === "necrotic" || healthStatus === "dead") && (
                   <div>
                     <Label>Contamination Type</Label>
                     <Select value={contaminationType} onValueChange={setContaminationType}>

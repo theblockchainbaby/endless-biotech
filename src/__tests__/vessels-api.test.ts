@@ -171,7 +171,7 @@ describe("Vessel Health Check", () => {
     const { POST } = await import("@/app/api/vessels/[id]/health-check/route");
     const req = new NextRequest("http://localhost:3000/api/vessels/v1/health-check", {
       method: "POST",
-      body: JSON.stringify({ healthStatus: "contaminated" }),
+      body: JSON.stringify({ healthStatus: "critical" }),
       headers: { "Content-Type": "application/json" },
     });
 

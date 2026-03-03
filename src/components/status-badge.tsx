@@ -12,9 +12,11 @@ const statusVariants: Record<string, "default" | "secondary" | "destructive" | "
 
 const healthVariants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   healthy: "default",
-  contaminated: "destructive",
+  stable: "secondary",
+  critical: "destructive",
   slow_growth: "secondary",
   necrotic: "destructive",
+  vitrified: "secondary",
   dead: "destructive",
 };
 

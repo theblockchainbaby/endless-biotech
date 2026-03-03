@@ -35,7 +35,7 @@ export async function GET() {
       }
       healthMap[row.cultivarId].total += row._count.id;
       if (row.healthStatus === "healthy") healthMap[row.cultivarId].healthy += row._count.id;
-      if (row.healthStatus === "contaminated") healthMap[row.cultivarId].contaminated += row._count.id;
+      if (row.healthStatus === "critical" || row.healthStatus === "dead") healthMap[row.cultivarId].contaminated += row._count.id;
     }
 
     const cultivarsWithHealth = cultivars.map((c) => {

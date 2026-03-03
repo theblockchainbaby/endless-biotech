@@ -35,7 +35,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       prisma.vessel.groupBy({ by: ["stage"], _count: { id: true }, where: activeFilter }),
       prisma.vessel.groupBy({ by: ["healthStatus"], _count: { id: true }, where: activeFilter }),
       prisma.vessel.groupBy({ by: ["status"], _count: { id: true }, where: { cultivarId: id } }),
-      prisma.vessel.count({ where: { ...activeFilter, healthStatus: "contaminated" } }),
+      prisma.vessel.count({ where: { ...activeFilter, contaminationType: { not: null } } }),
     ]);
 
     const healthyCount = vesselsByHealthStatus.find((h) => h.healthStatus === "healthy")?._count.id ?? 0;

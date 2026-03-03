@@ -33,7 +33,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       data.contaminationType = body.contaminationType;
     }
 
-    if (body.healthStatus === "contaminated" && !vessel.contaminationDate) {
+    const isContaminated = !!body.contaminationType;
+    if (isContaminated && !vessel.contaminationDate) {
       data.contaminationDate = new Date();
     }
 
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await logActivity({
       vesselId: id,
       userId: user.id,
-      type: body.healthStatus === "contaminated" ? "contaminated" : "health_update",
+      type: isContaminated ? "contaminated" : "health_update",
       category: "vessel",
       previousState,
       newState: { healthStatus: body.healthStatus, contaminationType: body.contaminationType ?? null },
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     });
 
     // Send email alert for contamination
-    if (body.healthStatus === "contaminated") {
+    if (isContaminated) {
       const managers = await prisma.user.findMany({
         where: {
           organizationId: user.organizationId,

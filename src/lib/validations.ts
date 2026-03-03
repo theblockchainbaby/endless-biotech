@@ -67,7 +67,7 @@ export const moveVesselSchema = z.object({
 
 export const batchOperationSchema = z.object({
   vesselIds: z.array(z.string()).min(1),
-  action: z.enum(["advance_stage", "move", "health_check", "dispose"]),
+  action: z.enum(["advance_stage", "move", "health_check", "dispose", "assign_media"]),
   params: z.record(z.string(), z.unknown()).optional(),
 });
 

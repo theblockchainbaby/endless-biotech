@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
             _sum: { explantCount: true },
           }),
           prisma.vessel.count({
-            where: { organizationId: orgId, healthStatus: "contaminated" },
+            where: { organizationId: orgId, contaminationType: { not: null } },
           }),
           prisma.vessel.count({
             where: { organizationId: orgId, status: "multiplied" },
@@ -153,7 +153,6 @@ export async function GET(req: NextRequest) {
             by: ["contaminationType"],
             where: {
               organizationId: orgId,
-              healthStatus: "contaminated",
               contaminationDate: { gte: threeMonthsAgo },
               contaminationType: { not: null },
             },
@@ -163,7 +162,7 @@ export async function GET(req: NextRequest) {
             by: ["cultivarId"],
             where: {
               organizationId: orgId,
-              healthStatus: "contaminated",
+              contaminationType: { not: null },
               contaminationDate: { gte: threeMonthsAgo },
             },
             _count: true,
@@ -174,7 +173,7 @@ export async function GET(req: NextRequest) {
           prisma.vessel.count({
             where: {
               organizationId: orgId,
-              healthStatus: "contaminated",
+              contaminationType: { not: null },
               contaminationDate: { gte: threeMonthsAgo },
             },
           }),

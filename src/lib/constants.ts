@@ -18,17 +18,21 @@ export const VESSEL_STATUS_LABELS: Record<string, string> = {
 
 export const HEALTH_STATUSES = [
   "healthy",
-  "contaminated",
+  "stable",
+  "critical",
   "slow_growth",
   "necrotic",
+  "vitrified",
   "dead",
 ] as const;
 
 export const HEALTH_STATUS_LABELS: Record<string, string> = {
   healthy: "Healthy",
-  contaminated: "Contaminated",
+  stable: "Stable",
+  critical: "Critical",
   slow_growth: "Slow Growth",
   necrotic: "Necrotic",
+  vitrified: "Vitrified",
   dead: "Dead",
 };
 

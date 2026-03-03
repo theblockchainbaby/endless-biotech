@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,14 @@ import type { Vessel } from "@/lib/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { toast } from "sonner";
 
-type BatchAction = "advance_stage" | "move" | "health_check" | "dispose";
+type BatchAction = "advance_stage" | "move" | "health_check" | "dispose" | "assign_media";
+
+interface MediaRecipe {
+  id: string;
+  name: string;
+  baseMedia: string;
+  stage: string | null;
+}
 
 export default function BatchOperationsPage() {
   const [scannedVessels, setScannedVessels] = useState<Vessel[]>([]);
@@ -31,6 +38,15 @@ export default function BatchOperationsPage() {
   const [moveLocationId, setMoveLocationId] = useState("");
   const [healthStatus, setHealthStatus] = useState("healthy");
   const [disposeReason, setDisposeReason] = useState("");
+  const [mediaRecipeId, setMediaRecipeId] = useState("");
+  const [mediaRecipes, setMediaRecipes] = useState<MediaRecipe[]>([]);
+
+  useEffect(() => {
+    fetch("/api/media-recipes")
+      .then((r) => r.json())
+      .then((data) => setMediaRecipes(Array.isArray(data) ? data : data.recipes || []))
+      .catch(() => {});
+  }, []);
 
   const scanBarcode = useCallback(async (barcode: string) => {
     if (!barcode.trim()) return;
@@ -42,11 +58,19 @@ export default function BatchOperationsPage() {
 
     setScanning(true);
     try {
-      const res = await fetch(`/api/vessels/barcode?barcode=${encodeURIComponent(barcode.trim())}`);
+      const res = await fetch(`/api/vessels/barcode?code=${encodeURIComponent(barcode.trim())}`);
       if (res.ok) {
-        const vessel = await res.json();
-        setScannedVessels((prev) => [...prev, vessel]);
-        toast.success(`Added ${vessel.barcode}`);
+        const data = await res.json();
+        if (data.found && data.vessel) {
+          if (data.isDisposed) {
+            toast.error(`Vessel ${barcode} is ${data.vessel.status} — cannot batch operate on it`);
+          } else {
+            setScannedVessels((prev) => [...prev, data.vessel]);
+            toast.success(`Added ${data.vessel.barcode}`);
+          }
+        } else {
+          toast.error(`Vessel not found: ${barcode}`);
+        }
       } else {
         toast.error(`Vessel not found: ${barcode}`);
       }
@@ -90,6 +114,13 @@ export default function BatchOperationsPage() {
     }
     if (action === "dispose") {
       params.reason = disposeReason || "Batch disposal";
+    }
+    if (action === "assign_media") {
+      if (!mediaRecipeId) {
+        toast.error("Select a media recipe first");
+        return;
+      }
+      params.mediaRecipeId = mediaRecipeId;
     }
 
     setExecuting(true);
@@ -207,6 +238,7 @@ export default function BatchOperationsPage() {
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="advance_stage">Advance Stage</SelectItem>
+                  <SelectItem value="assign_media">Assign Media Recipe</SelectItem>
                   <SelectItem value="move">Move to Location</SelectItem>
                   <SelectItem value="health_check">Health Check</SelectItem>
                   <SelectItem value="dispose">Dispose</SelectItem>
@@ -220,6 +252,22 @@ export default function BatchOperationsPage() {
                 <div className="mt-1">
                   <LocationPicker value={moveLocationId} onChange={setMoveLocationId} />
                 </div>
+              </div>
+            )}
+
+            {action === "assign_media" && (
+              <div>
+                <Label>Media Recipe</Label>
+                <Select value={mediaRecipeId} onValueChange={setMediaRecipeId}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Select recipe..." /></SelectTrigger>
+                  <SelectContent>
+                    {mediaRecipes.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.name} ({r.baseMedia}{r.stage ? ` — ${r.stage}` : ""})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
