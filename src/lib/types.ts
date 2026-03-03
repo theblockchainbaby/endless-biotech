@@ -22,6 +22,8 @@ export interface UserProfile {
 export interface Cultivar {
   id: string;
   name: string;
+  code: string | null;
+  cultivarType: string;
   species: string;
   strain: string | null;
   geneticLineage: string | null;

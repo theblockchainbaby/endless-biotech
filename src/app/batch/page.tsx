@@ -161,20 +161,31 @@ export default function BatchOperationsPage() {
         description="Scan multiple vessels and apply operations in bulk"
       />
 
-      {/* Quick action: Batch Multiply */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
+      {/* Quick actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <p className="font-medium text-sm">Batch Create</p>
+              <p className="text-xs text-muted-foreground">Scan multiple barcodes, assign the same cultivar/media/explants to all</p>
+              <Link href="/batch/create">
+                <Button variant="outline" size="sm" className="w-full mt-2">Open</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-2">
               <p className="font-medium text-sm">Batch Multiply</p>
               <p className="text-xs text-muted-foreground">Scan parents and their offspring to record multiplications in bulk</p>
+              <Link href="/batch/multiply">
+                <Button variant="outline" size="sm" className="w-full mt-2">Open</Button>
+              </Link>
             </div>
-            <Link href="/batch/multiply">
-              <Button variant="outline" size="sm">Open</Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Scanner */}
       <Card>

@@ -185,3 +185,10 @@ export const CULTIVAR_HEALTH_LABELS: Record<string, string> = {
   stable: "Stable",
   critical: "Critical",
 };
+
+export const CULTIVAR_TYPES = ["in_house", "client"] as const;
+
+export const CULTIVAR_TYPE_LABELS: Record<string, string> = {
+  in_house: "In-House",
+  client: "Client",
+};

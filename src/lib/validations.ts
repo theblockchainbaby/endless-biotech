@@ -75,6 +75,8 @@ export const batchOperationSchema = z.object({
 
 export const createCultivarSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  code: z.string().nullable().optional(),
+  cultivarType: z.enum(["in_house", "client"]).default("in_house"),
   species: z.string().default("Cannabis"),
   strain: z.string().nullable().optional(),
   geneticLineage: z.string().nullable().optional(),

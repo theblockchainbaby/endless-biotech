@@ -65,6 +65,8 @@ export async function POST(req: NextRequest) {
     const cultivar = await prisma.cultivar.create({
       data: {
         name: body.name,
+        code: body.code || null,
+        cultivarType: body.cultivarType || "in_house",
         species: body.species,
         strain: body.strain || null,
         geneticLineage: body.geneticLineage || null,

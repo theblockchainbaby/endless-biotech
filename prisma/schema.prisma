@@ -136,6 +136,8 @@ model Location {
 model Cultivar {
   id                     String   @id @default(cuid())
   name                   String
+  code                   String?  // Short code e.g. "AA01", "RZ01" — auto-attached to vessels
+  cultivarType           String   @default("in_house") // in_house, client
   species                String   @default("Cannabis")
   strain                 String?  // Indica, Sativa, Hybrid
   geneticLineage         String?
@@ -153,6 +155,7 @@ model Cultivar {
   photos  Photo[]  @relation("CultivarPhotos")
 
   @@unique([name, organizationId])
+  @@unique([code, organizationId])
   @@index([organizationId])
 }
 

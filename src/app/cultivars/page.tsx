@@ -10,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/page-header";
 import { CultivarHealthBadge } from "@/components/status-badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CULTIVAR_TYPE_LABELS } from "@/lib/constants";
 import type { Cultivar } from "@/lib/types";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
@@ -25,6 +27,8 @@ export default function CultivarsPage() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [name, setName] = useState("");
+  const [code, setCode] = useState("");
+  const [cultivarType, setCultivarType] = useState("in_house");
   const [species, setSpecies] = useState("Cannabis");
   const [description, setDescription] = useState("");
 
@@ -45,6 +49,7 @@ export default function CultivarsPage() {
     return (
       c.name.toLowerCase().includes(q) ||
       c.species.toLowerCase().includes(q) ||
+      (c.code || "").toLowerCase().includes(q) ||
       (c.description || "").toLowerCase().includes(q)
     );
   });
@@ -57,11 +62,19 @@ export default function CultivarsPage() {
     const res = await fetch("/api/cultivars", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), species, description: description || null }),
+      body: JSON.stringify({
+        name: name.trim(),
+        code: code.trim() || null,
+        cultivarType,
+        species,
+        description: description || null,
+      }),
     });
     if (res.ok) {
       toast.success(`Cultivar "${name}" created`);
       setName("");
+      setCode("");
+      setCultivarType("in_house");
       setSpecies("Cannabis");
       setDescription("");
       setOpen(false);
@@ -98,13 +111,31 @@ export default function CultivarsPage() {
                 <DialogTitle>Add New Cultivar</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-2">
-                <div className="space-y-2">
-                  <Label>Name</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Blue Dream" autoFocus />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Name</Label>
+                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Runtz" autoFocus />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Code</Label>
+                    <Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="e.g., AA01" className="font-mono" />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Species</Label>
-                  <Input value={species} onChange={(e) => setSpecies(e.target.value)} placeholder="e.g., Cannabis, Date Palm" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Type</Label>
+                    <Select value={cultivarType} onValueChange={setCultivarType}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="in_house">In-House</SelectItem>
+                        <SelectItem value="client">Client</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Species</Label>
+                    <Input value={species} onChange={(e) => setSpecies(e.target.value)} placeholder="e.g., Cannabis" />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Description (optional)</Label>
@@ -142,8 +173,9 @@ export default function CultivarsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Code</TableHead>
                   <TableHead>Name</TableHead>
-                  <TableHead>Species</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Health</TableHead>
                   <TableHead className="text-right">Vessels</TableHead>
                   <TableHead></TableHead>
@@ -156,8 +188,13 @@ export default function CultivarsPage() {
                     className="cursor-pointer"
                     onClick={() => router.push(`/cultivars/${c.id}`)}
                   >
+                    <TableCell className="font-mono text-muted-foreground">{c.code || "—"}</TableCell>
                     <TableCell className="font-medium">{c.name}</TableCell>
-                    <TableCell>{c.species}</TableCell>
+                    <TableCell>
+                      <span className={`text-xs px-2 py-0.5 rounded ${c.cultivarType === "client" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" : "bg-muted text-muted-foreground"}`}>
+                        {CULTIVAR_TYPE_LABELS[c.cultivarType] || c.cultivarType}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <CultivarHealthBadge status={c.cultivarHealth} />
                     </TableCell>
@@ -189,13 +226,20 @@ export default function CultivarsPage() {
               >
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">{c.name}</CardTitle>
+                    <div className="flex items-center gap-2">
+                      {c.code && <span className="font-mono text-xs text-muted-foreground">{c.code}</span>}
+                      <CardTitle className="text-base">{c.name}</CardTitle>
+                    </div>
                     <CultivarHealthBadge status={c.cultivarHealth} />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">{c.species}</p>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2 py-0.5 rounded ${c.cultivarType === "client" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" : "bg-muted text-muted-foreground"}`}>
+                        {CULTIVAR_TYPE_LABELS[c.cultivarType] || c.cultivarType}
+                      </span>
+                    </div>
                     <span className="text-sm text-muted-foreground font-mono">{c._count?.vessels ?? 0} vessels</span>
                   </div>
                 </CardContent>

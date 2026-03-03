@@ -27,6 +27,8 @@ interface CultivarMetrics {
 interface CultivarDetail {
   id: string;
   name: string;
+  code: string | null;
+  cultivarType: string;
   species: string;
   strain: string | null;
   geneticLineage: string | null;
