@@ -16,7 +16,8 @@ import { StagePipeline } from "@/components/stage-pipeline";
 import { LocationPicker } from "@/components/location-picker";
 import { PhotoCapture } from "@/components/photo-capture";
 import { PhotoGallery } from "@/components/photo-gallery";
-import { HEALTH_STATUSES, HEALTH_STATUS_LABELS, CONTAMINATION_TYPES, STAGES } from "@/lib/constants";
+import { Input } from "@/components/ui/input";
+import { HEALTH_STATUSES, HEALTH_STATUS_LABELS, CONTAMINATION_TYPES, STAGES, DEFAULT_SUBCULTURE_INTERVAL_DAYS } from "@/lib/constants";
 import type { Vessel, Photo, Protocol } from "@/lib/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { formatDistanceToNow, format } from "date-fns";
@@ -44,6 +45,14 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
   const [moving, setMoving] = useState(false);
   const [advanceConfirmOpen, setAdvanceConfirmOpen] = useState(false);
   const [undoing, setUndoing] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editGeneration, setEditGeneration] = useState("0");
+  const [editSubcultureNumber, setEditSubcultureNumber] = useState("0");
+  const [editExplantCount, setEditExplantCount] = useState("0");
+  const [editLastSubcultureDate, setEditLastSubcultureDate] = useState("");
+  const [editNextSubcultureDate, setEditNextSubcultureDate] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const fetchVessel = () => {
     fetch(`/api/vessels/${id}`)
@@ -172,6 +181,62 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
     }
   };
 
+  const openEditDialog = () => {
+    if (!vessel) return;
+    setEditGeneration(String(vessel.generation));
+    setEditSubcultureNumber(String(vessel.subcultureNumber));
+    setEditExplantCount(String(vessel.explantCount));
+    setEditLastSubcultureDate(vessel.lastSubcultureDate ? vessel.lastSubcultureDate.slice(0, 10) : "");
+    setEditNextSubcultureDate(vessel.nextSubcultureDate ? vessel.nextSubcultureDate.slice(0, 10) : "");
+    setEditNotes(vessel.notes || "");
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    setSaving(true);
+    try {
+      const payload: Record<string, unknown> = {
+        generation: parseInt(editGeneration) || 0,
+        subcultureNumber: parseInt(editSubcultureNumber) || 0,
+        explantCount: parseInt(editExplantCount) || 0,
+        notes: editNotes || null,
+      };
+      if (editLastSubcultureDate) {
+        payload.lastSubcultureDate = new Date(editLastSubcultureDate).toISOString();
+      } else {
+        payload.lastSubcultureDate = null;
+      }
+      if (editNextSubcultureDate) {
+        payload.nextSubcultureDate = new Date(editNextSubcultureDate).toISOString();
+      }
+
+      const res = await fetch(`/api/vessels/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        toast.success("Details updated");
+        setEditDialogOpen(false);
+        fetchVessel();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Failed to save");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLastSubcultureDateChange = (value: string) => {
+    setEditLastSubcultureDate(value);
+    if (value) {
+      const next = new Date(value);
+      next.setDate(next.getDate() + DEFAULT_SUBCULTURE_INTERVAL_DAYS);
+      setEditNextSubcultureDate(next.toISOString().slice(0, 10));
+    }
+  };
+
   if (loading) return <div className="text-center py-12 text-muted-foreground">Loading vessel...</div>;
   if (!vessel) return <div className="text-center py-12 text-muted-foreground">Vessel not found</div>;
 
@@ -285,6 +350,7 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
               </div>
             </DialogContent>
           </Dialog>
+          <Button size="sm" variant="outline" onClick={openEditDialog}>Edit Details</Button>
           <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline">Move</Button>
@@ -304,6 +370,47 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
                 </div>
                 <Button onClick={handleMove} disabled={moving} className="w-full">
                   {moving ? "Moving..." : "Move Vessel"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Edit Vessel Details</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label>Generation</Label>
+                    <Input type="number" min="0" value={editGeneration} onChange={(e) => setEditGeneration(e.target.value)} className="mt-1" />
+                  </div>
+                  <div>
+                    <Label>Subculture #</Label>
+                    <Input type="number" min="0" value={editSubcultureNumber} onChange={(e) => setEditSubcultureNumber(e.target.value)} className="mt-1" />
+                  </div>
+                  <div>
+                    <Label>Explants</Label>
+                    <Input type="number" min="0" value={editExplantCount} onChange={(e) => setEditExplantCount(e.target.value)} className="mt-1" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Last Subculture Date</Label>
+                    <Input type="date" value={editLastSubcultureDate} onChange={(e) => handleLastSubcultureDateChange(e.target.value)} className="mt-1" />
+                  </div>
+                  <div>
+                    <Label>Next Subculture Date</Label>
+                    <Input type="date" value={editNextSubcultureDate} onChange={(e) => setEditNextSubcultureDate(e.target.value)} className="mt-1" />
+                    {editLastSubcultureDate && !editNextSubcultureDate && (
+                      <p className="text-xs text-muted-foreground mt-1">Auto-calculated from last + 14 days</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <Label>Notes</Label>
+                  <Textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} rows={2} className="mt-1" placeholder="Optional notes..." />
+                </div>
+                <Button onClick={handleEditSave} disabled={saving} className="w-full">
+                  {saving ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
             </DialogContent>
@@ -350,6 +457,12 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
             <span>{format(new Date(vessel.createdAt), "MMM d, yyyy h:mm a")}</span>
             <span className="text-muted-foreground">Last Updated</span>
             <span>{formatDistanceToNow(new Date(vessel.updatedAt), { addSuffix: true })}</span>
+            {vessel.lastSubcultureDate && (
+              <>
+                <span className="text-muted-foreground">Last Subculture</span>
+                <span>{format(new Date(vessel.lastSubcultureDate), "MMM d, yyyy")}</span>
+              </>
+            )}
             {vessel.nextSubcultureDate && (
               <>
                 <span className="text-muted-foreground">Next Subculture</span>

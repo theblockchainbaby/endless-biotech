@@ -69,6 +69,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             stage: "multiplication",
             subcultureNumber: parent.subcultureNumber + 1,
             generation: parent.generation + 1,
+            lastSubcultureDate: new Date(),
             notes: child.notes || null,
             parentVesselId: id,
             organizationId: user.organizationId,

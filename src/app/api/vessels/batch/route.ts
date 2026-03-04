@@ -39,10 +39,12 @@ export async function POST(req: NextRequest) {
             const nextStage = stageOrder[currentIndex + 1];
             const data: Record<string, unknown> = { stage: nextStage };
             if (nextStage === "multiplication") {
+              const now = new Date();
               const nextDate = new Date();
               nextDate.setDate(nextDate.getDate() + DEFAULT_SUBCULTURE_INTERVAL_DAYS);
+              data.lastSubcultureDate = now;
               data.nextSubcultureDate = nextDate;
-              data.plantedAt = new Date();
+              data.plantedAt = now;
             }
             await prisma.vessel.update({ where: { id: vessel.id }, data });
             await logActivity({

@@ -60,6 +60,7 @@ export interface Vessel {
   parentVesselId: string | null;
   organizationId: string;
   plantedAt: string | null;
+  lastSubcultureDate: string | null;
   nextSubcultureDate: string | null;
   createdAt: string;
   updatedAt: string;

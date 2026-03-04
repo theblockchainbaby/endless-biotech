@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, requireRole, handleApiError, parseBody } from "@/lib/api-helpers";
 import { updateVesselSchema } from "@/lib/validations";
 import { logActivity, buildStateSnapshot } from "@/lib/activity-logger";
+import { DEFAULT_SUBCULTURE_INTERVAL_DAYS } from "@/lib/constants";
 
-const TRACKED_FIELDS = ["status", "stage", "healthStatus", "cultivarId", "mediaRecipeId", "locationId", "explantCount"];
+const TRACKED_FIELDS = ["status", "stage", "healthStatus", "cultivarId", "mediaRecipeId", "locationId", "explantCount", "generation", "subcultureNumber"];
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -55,6 +56,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.stage !== undefined) data.stage = body.stage;
     if (body.contaminationType !== undefined) data.contaminationType = body.contaminationType;
     if (body.contaminationDate !== undefined) data.contaminationDate = body.contaminationDate ? new Date(body.contaminationDate) : null;
+    if (body.generation !== undefined) data.generation = body.generation;
+    if (body.subcultureNumber !== undefined) data.subcultureNumber = body.subcultureNumber;
+    if (body.lastSubcultureDate !== undefined) {
+      data.lastSubcultureDate = body.lastSubcultureDate ? new Date(body.lastSubcultureDate) : null;
+      // Auto-calculate nextSubcultureDate if not explicitly provided
+      if (body.lastSubcultureDate && body.nextSubcultureDate === undefined) {
+        const next = new Date(body.lastSubcultureDate);
+        next.setDate(next.getDate() + DEFAULT_SUBCULTURE_INTERVAL_DAYS);
+        data.nextSubcultureDate = next;
+      }
+    }
+    if (body.nextSubcultureDate !== undefined) data.nextSubcultureDate = body.nextSubcultureDate ? new Date(body.nextSubcultureDate) : null;
     if (body.disposalReason !== undefined) data.disposalReason = body.disposalReason;
     if (body.notes !== undefined) data.notes = body.notes;
 

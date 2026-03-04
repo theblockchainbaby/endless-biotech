@@ -33,10 +33,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // If entering multiplication, calculate next subculture date
     const data: Record<string, unknown> = { stage: nextStage };
     if (nextStage === "multiplication") {
+      const now = new Date();
       const nextDate = new Date();
       nextDate.setDate(nextDate.getDate() + DEFAULT_SUBCULTURE_INTERVAL_DAYS);
+      data.lastSubcultureDate = now;
       data.nextSubcultureDate = nextDate;
-      data.plantedAt = new Date();
+      data.plantedAt = now;
     }
 
     const updated = await prisma.vessel.update({
