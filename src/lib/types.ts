@@ -247,6 +247,7 @@ export interface Protocol {
 export interface DashboardStats {
   totalVessels: number;
   activeVessels: number;
+  mediaPrepVessels: number;
   totalExplants: number;
   contaminationRate: number;
   multiplicationRate: number;

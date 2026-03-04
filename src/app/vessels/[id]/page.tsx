@@ -18,7 +18,7 @@ import { PhotoCapture } from "@/components/photo-capture";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { Input } from "@/components/ui/input";
 import { HEALTH_STATUSES, HEALTH_STATUS_LABELS, CONTAMINATION_TYPES, STAGES, DEFAULT_SUBCULTURE_INTERVAL_DAYS } from "@/lib/constants";
-import type { Vessel, Photo, Protocol } from "@/lib/types";
+import type { Vessel, Photo, Protocol, Cultivar } from "@/lib/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
@@ -45,6 +45,12 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
   const [moving, setMoving] = useState(false);
   const [advanceConfirmOpen, setAdvanceConfirmOpen] = useState(false);
   const [undoing, setUndoing] = useState(false);
+  const [plantDialogOpen, setPlantDialogOpen] = useState(false);
+  const [plantCultivarId, setPlantCultivarId] = useState("");
+  const [plantExplantCount, setPlantExplantCount] = useState("1");
+  const [plantNotes, setPlantNotes] = useState("");
+  const [planting, setPlanting] = useState(false);
+  const [cultivars, setCultivars] = useState<Cultivar[]>([]);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editGeneration, setEditGeneration] = useState("0");
   const [editSubcultureNumber, setEditSubcultureNumber] = useState("0");
@@ -78,6 +84,7 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
   useEffect(() => {
     fetchVessel();
     fetchPhotos();
+    fetch("/api/cultivars").then((r) => r.json()).then(setCultivars).catch(() => {});
   }, [id]);
 
   useEffect(() => {
@@ -178,6 +185,36 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
       }
     } finally {
       setMoving(false);
+    }
+  };
+
+  const handlePlant = async () => {
+    if (!plantCultivarId) {
+      toast.error("Select a cultivar");
+      return;
+    }
+    setPlanting(true);
+    try {
+      const res = await fetch(`/api/vessels/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cultivarId: plantCultivarId,
+          explantCount: parseInt(plantExplantCount) || 1,
+          status: "planted",
+          notes: plantNotes || null,
+        }),
+      });
+      if (res.ok) {
+        toast.success("Vessel planted");
+        setPlantDialogOpen(false);
+        fetchVessel();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Failed");
+      }
+    } finally {
+      setPlanting(false);
     }
   };
 
@@ -292,8 +329,54 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
         </Card>
       )}
 
+      {/* Plant Action for media_filled vessels */}
+      {vessel.status === "media_filled" && (
+        <Card className="border-emerald-300 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-emerald-900 dark:text-emerald-200">Media Prep Vessel</p>
+                <p className="text-sm text-emerald-700 dark:text-emerald-400">This vessel has media but no plant yet. Assign a cultivar to activate it.</p>
+              </div>
+              <Dialog open={plantDialogOpen} onOpenChange={setPlantDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm">Plant</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader><DialogTitle>Plant Vessel</DialogTitle></DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Cultivar</Label>
+                      <Select value={plantCultivarId} onValueChange={setPlantCultivarId}>
+                        <SelectTrigger className="mt-1"><SelectValue placeholder="Select cultivar" /></SelectTrigger>
+                        <SelectContent>
+                          {cultivars.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Explant Count</Label>
+                      <Input type="number" min="1" value={plantExplantCount} onChange={(e) => setPlantExplantCount(e.target.value)} className="mt-1" />
+                    </div>
+                    <div>
+                      <Label>Notes</Label>
+                      <Textarea value={plantNotes} onChange={(e) => setPlantNotes(e.target.value)} rows={2} className="mt-1" placeholder="Optional..." />
+                    </div>
+                    <Button onClick={handlePlant} disabled={planting} className="w-full">
+                      {planting ? "Planting..." : "Plant Vessel"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Action Buttons */}
-      {isActive && (
+      {isActive && vessel.status !== "media_filled" && (
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => router.push("/scan")}>
             Scan Another

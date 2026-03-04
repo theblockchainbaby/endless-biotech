@@ -14,12 +14,13 @@ export async function GET() {
 
     const activeFilter = {
       organizationId: orgId,
-      status: { notIn: ["multiplied", "disposed"] },
+      status: { notIn: ["media_filled", "multiplied", "disposed"] },
     };
 
     const [
       totalVessels,
       activeVessels,
+      mediaPrepVessels,
       totalExplants,
       vesselsByStatus,
       vesselsByStage,
@@ -33,6 +34,7 @@ export async function GET() {
     ] = await Promise.all([
       prisma.vessel.count({ where: { organizationId: orgId } }),
       prisma.vessel.count({ where: activeFilter }),
+      prisma.vessel.count({ where: { organizationId: orgId, status: "media_filled" } }),
       prisma.vessel.aggregate({
         _sum: { explantCount: true },
         where: activeFilter,
@@ -115,6 +117,7 @@ export async function GET() {
     return NextResponse.json({
       totalVessels,
       activeVessels,
+      mediaPrepVessels,
       totalExplants: totalExplants._sum.explantCount || 0,
       vesselsByStatus: vesselsByStatus.map((v) => ({
         status: v.status,

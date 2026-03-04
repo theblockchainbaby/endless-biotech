@@ -14,33 +14,46 @@ import { exportToCSV, flattenVesselForExport } from "@/lib/csv-export";
 import type { Vessel, Cultivar } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
 
+type Tab = "active" | "media_prep" | "all";
+
 export default function VesselsPage() {
   const [vessels, setVessels] = useState<Vessel[]>([]);
   const [cultivars, setCultivars] = useState<Cultivar[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<Tab>("active");
   const [statusFilter, setStatusFilter] = useState("all");
   const [cultivarFilter, setCultivarFilter] = useState("all");
   const [healthFilter, setHealthFilter] = useState("all");
   const [stageFilter, setStageFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [mediaPrepCount, setMediaPrepCount] = useState(0);
 
   const fetchVessels = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams({ page: String(page), limit: "50" });
     if (search) params.set("search", search);
-    if (statusFilter !== "all") params.set("status", statusFilter);
     if (cultivarFilter !== "all") params.set("cultivarId", cultivarFilter);
     if (healthFilter !== "all") params.set("healthStatus", healthFilter);
     if (stageFilter !== "all") params.set("stage", stageFilter);
+
+    // Tab-based status filtering
+    if (tab === "media_prep") {
+      params.set("status", "media_filled");
+    } else if (tab === "active") {
+      params.set("excludeStatuses", "media_filled,multiplied,disposed");
+    } else if (statusFilter !== "all") {
+      params.set("status", statusFilter);
+    }
 
     const res = await fetch(`/api/vessels?${params}`);
     const data = await res.json();
     setVessels(data.vessels);
     setTotal(data.total);
+    if (data.mediaPrepCount !== undefined) setMediaPrepCount(data.mediaPrepCount);
     setLoading(false);
-  }, [page, search, statusFilter, cultivarFilter, healthFilter, stageFilter]);
+  }, [page, search, tab, statusFilter, cultivarFilter, healthFilter, stageFilter]);
 
   useEffect(() => {
     fetchVessels();
@@ -52,7 +65,7 @@ export default function VesselsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter, cultivarFilter, healthFilter, stageFilter]);
+  }, [search, tab, statusFilter, cultivarFilter, healthFilter, stageFilter]);
 
   const totalPages = Math.ceil(total / 50);
 
@@ -60,7 +73,7 @@ export default function VesselsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Vessels"
-        description={`${total.toLocaleString()} vessels total`}
+        description={tab === "media_prep" ? `${total} media-filled vessels` : `${total.toLocaleString()} vessels`}
         actions={
           <div className="flex gap-2">
             <Button
@@ -80,26 +93,49 @@ export default function VesselsPage() {
         }
       />
 
+      {/* Tabs */}
+      <div className="flex rounded-lg bg-muted p-1 w-fit">
+        {([
+          { key: "active" as Tab, label: "Active" },
+          { key: "media_prep" as Tab, label: `Media Prep${mediaPrepCount > 0 ? ` (${mediaPrepCount})` : ""}` },
+          { key: "all" as Tab, label: "All" },
+        ]).map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              tab === t.key
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {/* Filters */}
       <Card>
         <CardContent className="pt-4">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className={`grid grid-cols-2 ${tab === "all" ? "md:grid-cols-5" : "md:grid-cols-4"} gap-3`}>
             <Input
               placeholder="Search barcode..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                {Object.entries(VESSEL_STATUS_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {tab === "all" && (
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {Object.entries(VESSEL_STATUS_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Select value={stageFilter} onValueChange={setStageFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Stage" />

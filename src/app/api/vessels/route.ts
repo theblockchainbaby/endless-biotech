@@ -17,17 +17,20 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
 
+    const excludeStatuses = searchParams.get("excludeStatuses");
+
     const where: Record<string, unknown> = {
       organizationId: user.organizationId,
     };
     if (cultivarId) where.cultivarId = cultivarId;
     if (status) where.status = status;
+    else if (excludeStatuses) where.status = { notIn: excludeStatuses.split(",") };
     if (healthStatus) where.healthStatus = healthStatus;
     if (stage) where.stage = stage;
     if (locationId) where.locationId = locationId;
     if (search) where.barcode = { contains: search, mode: "insensitive" };
 
-    const [vessels, total] = await Promise.all([
+    const [vessels, total, mediaPrepCount] = await Promise.all([
       prisma.vessel.findMany({
         where,
         include: {
@@ -41,9 +44,12 @@ export async function GET(req: NextRequest) {
         take: limit,
       }),
       prisma.vessel.count({ where }),
+      prisma.vessel.count({
+        where: { organizationId: user.organizationId, status: "media_filled" },
+      }),
     ]);
 
-    return NextResponse.json({ vessels, total, page, limit });
+    return NextResponse.json({ vessels, total, page, limit, mediaPrepCount });
   } catch (error) {
     return handleApiError(error);
   }

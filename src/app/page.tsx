@@ -84,8 +84,9 @@ export default function Dashboard() {
       />
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <KPICard title="Active Vessels" value={stats.activeVessels} />
+        <KPICard title="Media Prep" value={stats.mediaPrepVessels} />
         <KPICard title="Total Explants" value={stats.totalExplants} />
         <KPICard title="Total Vessels" value={stats.totalVessels} />
         <KPICard
