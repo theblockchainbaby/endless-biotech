@@ -156,9 +156,8 @@ export function LandingPage() {
       {/* Navbar */}
       <nav className="border-b sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <Image src="/logo.png" alt="VitrOS" width={36} height={36} className="w-9 h-9" />
-            <span className="text-xl font-bold tracking-tight">VitrOS</span>
+          <div className="flex items-center">
+            <Image src="/logo.png" alt="VitrOS" width={120} height={80} className="h-10 w-auto" />
           </div>
           <div className="flex items-center gap-2">
             <Link href="#pricing">
@@ -455,12 +454,11 @@ export function LandingPage() {
       {/* Footer */}
       <footer className="border-t py-8 px-4">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-1.5">
-            <Image src="/logo.png" alt="VitrOS" width={28} height={28} className="w-7 h-7" />
-            <span className="font-semibold">VitrOS Labs</span>
+          <div className="flex items-center">
+            <Image src="/logo.png" alt="VitrOS" width={100} height={67} className="h-8 w-auto" />
           </div>
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} VitrOS Labs. Powered by Caipher.
+            &copy; {new Date().getFullYear()} VitrOS Labs. All rights reserved.
           </p>
         </div>
       </footer>
