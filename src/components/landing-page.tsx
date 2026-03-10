@@ -155,9 +155,10 @@ export function LandingPage() {
     <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Navbar */}
       <nav className="border-b sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center">
-            <Image src="/logo.png" alt="VitrOS" width={200} height={133} className="h-14 w-auto" />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Image src="/logo.png" alt="VitrOS" width={500} height={488} className="h-12 w-auto" />
+            <Image src="/logo-text.png" alt="VitrOS" width={573} height={155} className="h-8 w-auto" />
           </div>
           <div className="flex items-center gap-2">
             <Link href="#pricing">
