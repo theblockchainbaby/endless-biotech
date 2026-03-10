@@ -157,7 +157,7 @@ export function LandingPage() {
       <nav className="border-b sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <Image src="/logo.png" alt="VitrOS" width={120} height={80} className="h-10 w-auto" />
+            <Image src="/logo.png" alt="VitrOS" width={200} height={133} className="h-14 w-auto" />
           </div>
           <div className="flex items-center gap-2">
             <Link href="#pricing">
