@@ -193,11 +193,12 @@ export function LandingPage() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.1]"
           >
-            Tissue Culture Management,
-            <span className="block h-[1.15em]">
+            Tissue Culture{" "}
+            <span className="inline">
+              Management,{" "}
               <WordRotate
                 words={["Modernized", "Automated", "Simplified", "Streamlined"]}
-                className="text-primary"
+                className="text-primary inline"
                 duration={2500}
               />
             </span>
