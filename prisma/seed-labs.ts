@@ -304,6 +304,51 @@ const LABS: LabConfig[] = [
     ],
     vesselCount: 450,
   },
+  // ── Subculture Laboratories ──
+  {
+    name: "Subculture Laboratories",
+    slug: "subculture",
+    email: "demo@subculture.vitros.app",
+    contactName: "Sylvan Christenson",
+    address: "700 South Emerald Lane, Carbondale, IL 62901",
+    siteName: "Carbondale Lab",
+    cultivars: [
+      { name: "Philodendron Spiritus Sancti", code: "PHI-SPS", species: "Philodendron", strain: "Spiritus Sancti" },
+      { name: "Philodendron Florida Beauty Var.", code: "PHI-FBV", species: "Philodendron", strain: "Florida Beauty Variegated" },
+      { name: "Philodendron Caramel Marble", code: "PHI-CRM", species: "Philodendron", strain: "Caramel Marble Variegated" },
+      { name: "Philodendron White Wizard", code: "PHI-WHW", species: "Philodendron", strain: "White Wizard" },
+      { name: "Philodendron Ilsemanii", code: "PHI-ILS", species: "Philodendron", strain: "Ilsemanii" },
+      { name: "Philodendron Orange Princess", code: "PHI-ORP", species: "Philodendron", strain: "Orange Princess" },
+      { name: "Monstera Thai Constellation", code: "MON-THC", species: "Monstera deliciosa", strain: "Thai Constellation" },
+      { name: "Monstera Burle Marx Flame", code: "MON-BMF", species: "Monstera", strain: "Burle Marx Flame" },
+      { name: "Monstera White Monster", code: "MON-WHM", species: "Monstera deliciosa", strain: "White Monster" },
+      { name: "Alocasia Black Velvet Pink Albo", code: "ALO-BVP", species: "Alocasia reginula", strain: "Black Velvet Pink Albo" },
+      { name: "Alocasia Frydek Variegated", code: "ALO-FRV", species: "Alocasia micholitziana", strain: "Frydek Variegated" },
+      { name: "Epipremnum Pinnatum Variegated", code: "EPI-PNV", species: "Epipremnum pinnatum", strain: "Variegated" },
+      { name: "Musa Aeae Variegated Banana", code: "MUS-AEA", species: "Musa", strain: "Aeae Variegated" },
+      { name: "Vanilla Orchid", code: "VAN-ORC", species: "Vanilla planifolia", strain: "Standard" },
+    ],
+    locations: [
+      { name: "Laminar Flow Hood A", type: "flow_hood", capacity: 50 },
+      { name: "Laminar Flow Hood B", type: "flow_hood", capacity: 50 },
+      { name: "Growth Chamber 1 — Aroids", type: "growth_chamber", capacity: 400 },
+      { name: "Growth Chamber 2 — Monstera", type: "growth_chamber", capacity: 300 },
+      { name: "Growth Chamber 3 — Alocasia", type: "growth_chamber", capacity: 200 },
+      { name: "Media Prep Room", type: "prep_area", capacity: 100 },
+      { name: "Rooting Shelf A", type: "shelf", capacity: 200 },
+      { name: "Rooting Shelf B", type: "shelf", capacity: 200 },
+      { name: "Acclimation Dome", type: "greenhouse", capacity: 300 },
+      { name: "Genetic Bank Cold Storage", type: "cold_storage", capacity: 150 },
+    ],
+    mediaRecipes: [
+      { name: "MS + 2mg/L BAP (Aroid Multiplication)", baseMedia: "MS", targetPH: 5.7, agar: 8.0, sucrose: 30.0, stage: "multiplication" },
+      { name: "MS + 1mg/L TDZ (High-Value Var.)", baseMedia: "MS", targetPH: 5.7, agar: 7.5, sucrose: 30.0, stage: "multiplication" },
+      { name: "MS + 0.5mg/L IBA (Aroid Rooting)", baseMedia: "MS", targetPH: 5.8, agar: 7.0, sucrose: 20.0, stage: "rooting" },
+      { name: "MS Initiation + PPM + Charcoal", baseMedia: "MS", targetPH: 5.7, agar: 8.0, sucrose: 30.0, stage: "initiation" },
+      { name: "½ MS Vanilla Orchid Special", baseMedia: "MS", targetPH: 5.5, agar: 7.0, sucrose: 20.0, stage: "multiplication" },
+    ],
+    vesselCount: 400,
+  },
 ];
 
 async function seedLab(lab: LabConfig) {
@@ -619,7 +664,7 @@ async function main() {
   }
 
   console.log("\n══════════════════════════════════════════════");
-  console.log("✅ All 6 lab demos ready!");
+  console.log("✅ All 7 lab demos ready!");
   console.log("══════════════════════════════════════════════");
   console.log("");
   for (const lab of LABS) {
