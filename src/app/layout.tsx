@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { AppLayout } from "@/components/app-layout";
 import { Toaster } from "@/components/ui/sonner";
 import { SessionProvider } from "@/components/session-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -42,21 +41,16 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content="#16a34a" />
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <meta name="theme-color" content="#3d8b3d" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <SessionProvider>
             <TooltipProvider>
-              <SidebarProvider>
-                <AppSidebar />
-                <SidebarInset>
-                  <main className="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full">
-                    {children}
-                  </main>
-                </SidebarInset>
-              </SidebarProvider>
+              <AppLayout>
+                {children}
+              </AppLayout>
             </TooltipProvider>
             <Toaster />
             <ServiceWorkerRegister />

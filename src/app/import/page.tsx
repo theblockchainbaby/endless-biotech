@@ -188,7 +188,7 @@ export default function ImportPage() {
             <p>Required column: <span className="font-mono font-medium">barcode</span></p>
             <p>Optional: <span className="font-mono">cultivar, stage, explant_count, health_status, status, notes</span></p>
             <p>Valid stages: initiation, multiplication, rooting, acclimation, hardening</p>
-            <p>Max 500 vessels per import</p>
+            <p>Max 2,000 vessels per import</p>
           </div>
         </CardContent>
       </Card>

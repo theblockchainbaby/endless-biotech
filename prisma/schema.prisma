@@ -259,6 +259,7 @@ model Vessel {
   @@index([barcode])
   @@index([locationId])
   @@index([nextSubcultureDate])
+  @@index([parentVesselId])
 }
 
 // ==================== ACTIVITY (AUDIT TRAIL) ====================

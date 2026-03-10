@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/page-header";
 import { StatusBadge, HealthBadge, StageBadge } from "@/components/status-badge";
 import { VESSEL_STATUS_LABELS, HEALTH_STATUS_LABELS, STAGE_LABELS } from "@/lib/constants";
 import { exportToCSV, flattenVesselForExport } from "@/lib/csv-export";
+import { ImportDialog } from "@/components/import-dialog";
 import type { Vessel, Cultivar } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
 
@@ -29,6 +30,7 @@ export default function VesselsPage() {
   const [stageFilter, setStageFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [mediaPrepCount, setMediaPrepCount] = useState(0);
+  const [importOpen, setImportOpen] = useState(false);
 
   const fetchVessels = useCallback(async () => {
     setLoading(true);
@@ -76,6 +78,13 @@ export default function VesselsPage() {
         description={tab === "media_prep" ? `${total} media-filled vessels` : `${total.toLocaleString()} vessels`}
         actions={
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setImportOpen(true)}
+            >
+              Import
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -261,6 +270,12 @@ export default function VesselsPage() {
           )}
         </>
       )}
+
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onComplete={fetchVessels}
+      />
     </div>
   );
 }

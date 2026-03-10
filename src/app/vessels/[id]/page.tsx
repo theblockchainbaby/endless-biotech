@@ -619,7 +619,12 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
       {(vessel.parentVessel || (vessel.childVessels && vessel.childVessels.length > 0)) && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Lineage</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Lineage</CardTitle>
+              <Link href={`/vessels/${vessel.id}/lineage`}>
+                <Button variant="outline" size="sm">View Full Tree</Button>
+              </Link>
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
             {vessel.parentVessel && (

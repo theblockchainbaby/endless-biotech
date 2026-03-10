@@ -120,6 +120,41 @@ export async function sendSubcultureReminderEmail(params: {
   });
 }
 
+export async function sendContaminationSpikeAlert(params: {
+  currentWeekCount: number;
+  previousWeekCount: number;
+  orgName: string;
+  recipientEmails: string[];
+}) {
+  return sendEmail({
+    to: params.recipientEmails,
+    subject: `[VitrOS Alert] Contamination Spike Detected — ${params.orgName}`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 500px;">
+        <div style="background: #dc2626; color: white; padding: 12px 16px; border-radius: 8px 8px 0 0;">
+          <h2 style="margin: 0; font-size: 16px;">Contamination Spike Detected</h2>
+        </div>
+        <div style="border: 1px solid #e5e7eb; border-top: none; padding: 16px; border-radius: 0 0 8px 8px;">
+          <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+            <div style="text-align: center; flex: 1;">
+              <div style="font-size: 28px; font-weight: bold; color: #dc2626;">${params.currentWeekCount}</div>
+              <div style="font-size: 12px; color: #6b7280;">This Week</div>
+            </div>
+            <div style="text-align: center; flex: 1;">
+              <div style="font-size: 28px; font-weight: bold; color: #6b7280;">${params.previousWeekCount}</div>
+              <div style="font-size: 12px; color: #6b7280;">Last Week</div>
+            </div>
+          </div>
+          <p style="margin: 0; font-size: 14px; color: #374151;">
+            Contamination cases have ${params.previousWeekCount === 0 ? "appeared" : `increased ${Math.round((params.currentWeekCount / params.previousWeekCount) * 100 - 100)}%`} compared to last week. Review affected vessels immediately and check for environmental or procedural causes.
+          </p>
+          <p style="margin-top: 12px; font-size: 13px; color: #6b7280;">Log in to VitrOS to view contamination analytics and affected vessels.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 export async function sendLowInventoryAlert(params: {
   itemName: string;
   currentStock: number;

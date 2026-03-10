@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Link from "next/link";
 
 type Tab = "email" | "pin";
 
@@ -173,6 +174,13 @@ export default function LoginPage() {
             </Button>
           </form>
         )}
+
+        <p className="text-center text-sm text-muted-foreground mt-6">
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="text-primary hover:underline font-medium">
+            Create one free
+          </Link>
+        </p>
       </div>
     </div>
   );

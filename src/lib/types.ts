@@ -243,6 +243,29 @@ export interface Protocol {
   updatedAt: string;
 }
 
+// Lineage tree types
+export interface LineageNode {
+  id: string;
+  barcode: string;
+  cultivarName: string | null;
+  stage: string;
+  status: string;
+  healthStatus: string;
+  generation: number;
+  subcultureNumber: number;
+  explantCount: number;
+  createdAt: string;
+  children: LineageNode[];
+}
+
+export interface LineageTree {
+  root: LineageNode;
+  totalNodes: number;
+  maxGeneration: number;
+  currentVesselId: string;
+  truncated?: boolean;
+}
+
 // Dashboard stat types
 export interface DashboardStats {
   totalVessels: number;

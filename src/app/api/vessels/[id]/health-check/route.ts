@@ -59,8 +59,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       notes: body.notes || `Health updated to ${body.healthStatus}`,
     });
 
-    // Send email alert for contamination
+    // Create alert + send email for contamination
     if (isContaminated) {
+      // Persist alert to database
+      await prisma.alert.create({
+        data: {
+          type: "contamination_spike",
+          severity: "warning",
+          title: `Contamination: ${vessel.barcode}`,
+          message: `${body.contaminationType || "Unknown"} contamination detected on vessel ${vessel.barcode} by ${user.name}.`,
+          entityType: "vessel",
+          entityId: vessel.id,
+          organizationId: user.organizationId,
+        },
+      });
+
       const managers = await prisma.user.findMany({
         where: {
           organizationId: user.organizationId,

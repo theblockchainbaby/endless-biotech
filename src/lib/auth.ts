@@ -6,7 +6,9 @@ import bcrypt from "bcryptjs";
 import { rateLimit } from "./rate-limit";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  // Note: PrismaAdapter removed — not needed with JWT + Credentials.
+  // The adapter tries to create/delete DB sessions which conflicts with JWT strategy,
+  // causing sign-out to silently fail and leaving stale cookies.
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",

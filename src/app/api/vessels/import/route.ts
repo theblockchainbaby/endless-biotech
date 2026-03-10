@@ -66,8 +66,8 @@ export async function POST(req: NextRequest) {
     if (rows.length === 0) {
       throw new ApiError("No valid rows found in CSV", 400);
     }
-    if (rows.length > 500) {
-      throw new ApiError("Maximum 500 vessels per import. Split your CSV into smaller batches.", 400);
+    if (rows.length > 2000) {
+      throw new ApiError("Maximum 2,000 vessels per import. Split your CSV into smaller batches.", 400);
     }
 
     // Check for duplicate barcodes within the CSV
