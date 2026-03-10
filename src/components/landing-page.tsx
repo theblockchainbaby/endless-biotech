@@ -194,12 +194,13 @@ export function LandingPage() {
             className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.1]"
           >
             Tissue Culture Management,
-            <br />
-            <WordRotate
-              words={["Modernized", "Automated", "Simplified", "Streamlined"]}
-              className="text-primary inline-block"
-              duration={2500}
-            />
+            <span className="block h-[1.15em]">
+              <WordRotate
+                words={["Modernized", "Automated", "Simplified", "Streamlined"]}
+                className="text-primary"
+                duration={2500}
+              />
+            </span>
           </motion.h1>
           <motion.p
             variants={fadeUp}
