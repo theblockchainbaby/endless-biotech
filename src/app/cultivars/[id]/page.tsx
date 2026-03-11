@@ -4,12 +4,16 @@ import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
 import { CultivarHealthBadge, StageBadge, HealthBadge } from "@/components/status-badge";
 import { STAGE_LABELS, HEALTH_STATUS_LABELS, VESSEL_STATUS_LABELS } from "@/lib/constants";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 
 interface CultivarMetrics {
   totalVessels: number;
@@ -47,6 +51,9 @@ export default function CultivarDetailPage({ params }: { params: Promise<{ id: s
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ name: "", code: "", cultivarType: "in_house", species: "", strain: "", description: "" });
+  const [saving, setSaving] = useState(false);
 
   const fetchCultivar = () => {
     fetch(`/api/cultivars/${id}`)
@@ -85,6 +92,50 @@ export default function CultivarDetailPage({ params }: { params: Promise<{ id: s
     }
   };
 
+  const openEdit = () => {
+    if (!cultivar) return;
+    setEditForm({
+      name: cultivar.name,
+      code: cultivar.code || "",
+      cultivarType: cultivar.cultivarType,
+      species: cultivar.species,
+      strain: cultivar.strain || "",
+      description: cultivar.description || "",
+    });
+    setEditOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editForm.name.trim()) {
+      toast.error("Name is required");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/cultivars/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editForm.name.trim(),
+          code: editForm.code.trim() || null,
+          cultivarType: editForm.cultivarType,
+          species: editForm.species.trim(),
+          strain: editForm.strain.trim() || null,
+          description: editForm.description.trim() || null,
+        }),
+      });
+      if (res.ok) {
+        toast.success("Cultivar updated");
+        setEditOpen(false);
+        fetchCultivar();
+      } else {
+        toast.error("Failed to update cultivar");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) return <div className="text-center py-12 text-muted-foreground">Loading...</div>;
   if (!cultivar) return <div className="text-center py-12 text-muted-foreground">Cultivar not found</div>;
 
@@ -116,7 +167,62 @@ export default function CultivarDetailPage({ params }: { params: Promise<{ id: s
           <PageHeader
             title={cultivar.name}
             description={cultivar.species + (cultivar.strain ? ` — ${cultivar.strain}` : "")}
-            actions={<CultivarHealthBadge status={m.cultivarHealth} />}
+            actions={
+              <div className="flex items-center gap-2">
+                <CultivarHealthBadge status={m.cultivarHealth} />
+                <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={openEdit}>
+                      <Pencil className="size-3.5 mr-1.5" /> Edit
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Edit Cultivar</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-2">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label>Name</Label>
+                          <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} autoFocus />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Code</Label>
+                          <Input value={editForm.code} onChange={(e) => setEditForm({ ...editForm, code: e.target.value.toUpperCase() })} className="font-mono" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label>Type</Label>
+                          <Select value={editForm.cultivarType} onValueChange={(v) => setEditForm({ ...editForm, cultivarType: v })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="in_house">In-House</SelectItem>
+                              <SelectItem value="client">Client</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Species</Label>
+                          <Input value={editForm.species} onChange={(e) => setEditForm({ ...editForm, species: e.target.value })} placeholder="e.g., Spathiphyllum wallisii" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Variety / Strain (optional)</Label>
+                        <Input value={editForm.strain} onChange={(e) => setEditForm({ ...editForm, strain: e.target.value })} placeholder="e.g., Domino" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Description (optional)</Label>
+                        <Input value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} />
+                      </div>
+                      <Button onClick={handleSaveEdit} disabled={saving} className="w-full">
+                        {saving ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            }
           />
         </div>
       </div>
