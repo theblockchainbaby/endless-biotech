@@ -29,7 +29,7 @@ export default function CultivarsPage() {
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [cultivarType, setCultivarType] = useState("in_house");
-  const [species, setSpecies] = useState("Cannabis");
+  const [species, setSpecies] = useState("");
   const [description, setDescription] = useState("");
 
   const fetchCultivars = () => {
@@ -75,7 +75,7 @@ export default function CultivarsPage() {
       setName("");
       setCode("");
       setCultivarType("in_house");
-      setSpecies("Cannabis");
+      setSpecies("");
       setDescription("");
       setOpen(false);
       fetchCultivars();
@@ -134,7 +134,7 @@ export default function CultivarsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Species</Label>
-                    <Input value={species} onChange={(e) => setSpecies(e.target.value)} placeholder="e.g., Cannabis" />
+                    <Input value={species} onChange={(e) => setSpecies(e.target.value)} placeholder="e.g., Spathiphyllum wallisii" />
                   </div>
                 </div>
                 <div className="space-y-2">

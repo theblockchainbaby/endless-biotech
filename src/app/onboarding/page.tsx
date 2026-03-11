@@ -44,7 +44,7 @@ export default function OnboardingPage() {
   ]);
 
   // Cultivar
-  const [cultivar, setCultivar] = useState<CultivarData>({ name: "", species: "Cannabis", strain: "" });
+  const [cultivar, setCultivar] = useState<CultivarData>({ name: "", species: "", strain: "" });
 
   const handleCreateSite = async () => {
     if (!site.name) {
@@ -294,7 +294,7 @@ export default function OnboardingPage() {
                 <Input
                   value={cultivar.name}
                   onChange={(e) => setCultivar({ ...cultivar, name: e.target.value })}
-                  placeholder="e.g., OG Kush, Blue Dream"
+                  placeholder="e.g., Spathiphyllum, Monstera"
                   className="mt-1"
                   autoFocus
                 />
@@ -304,15 +304,16 @@ export default function OnboardingPage() {
                 <Input
                   value={cultivar.species}
                   onChange={(e) => setCultivar({ ...cultivar, species: e.target.value })}
+                  placeholder="e.g., Spathiphyllum wallisii"
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label>Strain (optional)</Label>
+                <Label>Variety / Cultivar (optional)</Label>
                 <Input
                   value={cultivar.strain}
                   onChange={(e) => setCultivar({ ...cultivar, strain: e.target.value })}
-                  placeholder="e.g., Indica-dominant hybrid"
+                  placeholder="e.g., Domino, Thai Constellation"
                   className="mt-1"
                 />
               </div>

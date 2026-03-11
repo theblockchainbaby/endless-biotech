@@ -146,7 +146,7 @@ const VERTICALS = [
   { icon: FlaskConical, text: "Plant Propagation" },
   { icon: TestTubes, text: "Research Facilities" },
   { icon: LineChart, text: "Commercial Nurseries" },
-  { icon: Microscope, text: "Cannabis Cultivation" },
+  { icon: Microscope, text: "Horticulture & Biotech" },
   { icon: Upload, text: "Ag Biotech" },
 ];
 
@@ -435,7 +435,7 @@ export function LandingPage() {
           >
             <div className="relative rounded-xl border-2 border-primary/30 bg-primary/5 p-6 text-center">
               <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4">
-                Limited — 3 spots
+                Limited — 3 spots remaining
               </Badge>
               <h3 className="text-xl font-bold mt-1 mb-2">Founding Partner Program</h3>
               <p className="text-muted-foreground text-sm mb-3">
@@ -443,11 +443,13 @@ export function LandingPage() {
                 <span className="font-bold text-foreground">$99/mo for your first year</span>{" "}
                 (80% off any plan). In exchange, we ask for a short case study and testimonial.
               </p>
-              <Link href="/signup?plan=starter&founding=true">
-                <ShimmerButton>
-                  Claim Founding Partner Rate <ArrowRight className="h-4 w-4" />
-                </ShimmerButton>
-              </Link>
+              <div className="flex justify-center">
+                <Link href="/signup?plan=starter&founding=true">
+                  <ShimmerButton>
+                    Claim Founding Partner Rate <ArrowRight className="h-4 w-4" />
+                  </ShimmerButton>
+                </Link>
+              </div>
             </div>
           </motion.div>
         </div>

@@ -127,7 +127,7 @@ export default function ImportPage() {
   };
 
   const downloadTemplate = () => {
-    const template = "barcode,cultivar,stage,explant_count,health_status,status,notes\nTC0001,OG Kush,initiation,5,healthy,planted,First batch\nTC0002,Blue Dream,multiplication,10,healthy,growing,Second transfer";
+    const template = "barcode,cultivar,stage,explant_count,health_status,status,notes\nTC0001,Spathiphyllum,initiation,5,healthy,planted,First batch\nTC0002,Monstera,multiplication,10,healthy,growing,Second transfer";
     const blob = new Blob([template], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -170,7 +170,7 @@ export default function ImportPage() {
           <Textarea
             value={csvText}
             onChange={(e) => setCsvText(e.target.value)}
-            placeholder={"barcode,cultivar,stage,explant_count\nTC0001,OG Kush,initiation,5"}
+            placeholder={"barcode,cultivar,stage,explant_count\nTC0001,Spathiphyllum,initiation,5"}
             rows={6}
             className="font-mono text-xs"
           />
