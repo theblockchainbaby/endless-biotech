@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, requireRole, handleApiError, parseBody } from "@/lib/api-helpers";
 import { createUserSchema } from "@/lib/validations";
+import { checkTeamMemberLimit } from "@/lib/plan-limits";
 import bcrypt from "bcryptjs";
 
 export async function GET() {
@@ -30,6 +31,7 @@ export async function POST(req: NextRequest) {
   try {
     const currentUser = await requireAuth();
     requireRole(currentUser, "admin", "manager");
+    await checkTeamMemberLimit(currentUser.organizationId);
     const body = await parseBody(req, createUserSchema);
 
     const passwordHash = await bcrypt.hash(body.password, 12);

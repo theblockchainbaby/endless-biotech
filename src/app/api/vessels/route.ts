@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, handleApiError, parseBody, ApiError } from "@/lib/api-helpers";
 import { createVesselSchema } from "@/lib/validations";
 import { logActivity } from "@/lib/activity-logger";
+import { checkVesselLimit } from "@/lib/plan-limits";
 
 export async function GET(req: NextRequest) {
   try {
@@ -58,6 +59,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await requireAuth();
+    await checkVesselLimit(user.organizationId);
     const body = await parseBody(req, createVesselSchema);
 
     // Duplicate barcode prevention — allow reuse if previous vessel is disposed/multiplied

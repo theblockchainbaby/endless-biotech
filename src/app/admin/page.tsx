@@ -308,7 +308,14 @@ export default function AdminPage() {
             </div>
             <div>
               <Label>Plan</Label>
-              <Input value={orgPlan} disabled className="mt-1 bg-muted" />
+              <div className="flex items-center gap-2 mt-1">
+                <Input value={orgPlan} disabled className="bg-muted flex-1" />
+                <a href="/admin/billing">
+                  <Button variant="outline" size="sm" type="button">
+                    Manage Billing
+                  </Button>
+                </a>
+              </div>
             </div>
           </div>
 

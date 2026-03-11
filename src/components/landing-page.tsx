@@ -401,7 +401,7 @@ export function LandingPage() {
                       </span>
                       <span className="text-muted-foreground">/mo</span>
                     </div>
-                    <Link href="/signup">
+                    <Link href={`/signup?plan=${tier.name.toLowerCase()}`}>
                       {tier.popular ? (
                         <ShimmerButton className="w-full mb-6">Get Started</ShimmerButton>
                       ) : (

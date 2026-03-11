@@ -21,6 +21,7 @@ import {
   ClipboardList,
   BookOpen,
   Tag,
+  CreditCard,
   Settings,
   LogOut,
   ChevronDown,
@@ -93,6 +94,7 @@ const navGroups = [
     label: "Admin",
     items: [
       { href: "/labels", label: "Labels", icon: Tag },
+      { href: "/admin/billing", label: "Billing", icon: CreditCard },
       { href: "/admin", label: "Settings", icon: Settings },
     ],
   },
