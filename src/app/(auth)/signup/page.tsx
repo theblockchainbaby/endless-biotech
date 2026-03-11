@@ -20,6 +20,7 @@ function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedPlan = searchParams.get("plan");
+  const isFoundingPartner = searchParams.get("founding") === "true";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -71,7 +72,10 @@ function SignupForm() {
           const checkoutRes = await fetch("/api/billing/checkout", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ plan: selectedPlan }),
+            body: JSON.stringify({
+              plan: selectedPlan,
+              ...(isFoundingPartner && { coupon: process.env.NEXT_PUBLIC_STRIPE_FOUNDING_COUPON_ID || "UEceJm3L" }),
+            }),
           });
           const checkoutData = await checkoutRes.json();
           if (checkoutData.url) {
@@ -117,6 +121,13 @@ function SignupForm() {
         <p className="text-center text-muted-foreground mb-6">
           Start managing your tissue culture lab
         </p>
+
+        {isFoundingPartner && (
+          <div className="rounded-lg bg-primary/10 border border-primary/20 text-sm p-3 mb-4 text-center">
+            <span className="font-semibold text-primary">Founding Partner</span>
+            {" — "}$99/mo for your first year (80% off)
+          </div>
+        )}
 
         {error && (
           <div className="rounded-lg bg-destructive/10 text-destructive text-sm p-3 mb-4">

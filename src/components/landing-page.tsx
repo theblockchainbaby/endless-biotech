@@ -373,7 +373,7 @@ export function LandingPage() {
               Simple, transparent pricing
             </motion.h2>
             <motion.p variants={fadeUp} transition={{ duration: 0.5, delay: 0.1 }} className="text-muted-foreground text-lg">
-              Start free. Upgrade when you&apos;re ready.
+              30-day free trial. Upgrade when you&apos;re ready.
             </motion.p>
           </motion.div>
           <motion.div
@@ -422,6 +422,33 @@ export function LandingPage() {
                 </MagicCard>
               </motion.div>
             ))}
+          </motion.div>
+
+          {/* Founding Partner */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="mt-10 max-w-2xl mx-auto"
+          >
+            <div className="relative rounded-xl border-2 border-primary/30 bg-primary/5 p-6 text-center">
+              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4">
+                Limited — 3 spots
+              </Badge>
+              <h3 className="text-xl font-bold mt-1 mb-2">Founding Partner Program</h3>
+              <p className="text-muted-foreground text-sm mb-3">
+                Be one of our first 3 customers and lock in{" "}
+                <span className="font-bold text-foreground">$99/mo for your first year</span>{" "}
+                (80% off any plan). In exchange, we ask for a short case study and testimonial.
+              </p>
+              <Link href="/signup?plan=starter&founding=true">
+                <ShimmerButton>
+                  Claim Founding Partner Rate <ArrowRight className="h-4 w-4" />
+                </ShimmerButton>
+              </Link>
+            </div>
           </motion.div>
         </div>
       </section>

@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     // Create org + user in a transaction
     const result = await prisma.$transaction(async (tx) => {
       const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + 14);
+      trialEnd.setDate(trialEnd.getDate() + 30);
 
       const org = await tx.organization.create({
         data: {

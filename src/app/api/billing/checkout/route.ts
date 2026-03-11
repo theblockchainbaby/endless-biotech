@@ -6,13 +6,14 @@ import { z } from "zod";
 
 const checkoutSchema = z.object({
   plan: z.enum(["starter", "pro", "enterprise"]),
+  coupon: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const user = await requireAuth();
     const body = await req.json();
-    const { plan } = checkoutSchema.parse(body);
+    const { plan, coupon } = checkoutSchema.parse(body);
 
     const org = await prisma.organization.findUnique({
       where: { id: user.organizationId },
@@ -46,19 +47,30 @@ export async function POST(req: NextRequest) {
       process.env.AUTH_URL ||
       "https://vitroslabs.com";
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: Record<string, unknown> = {
       customer: customerId,
       mode: "subscription",
       line_items: [{ price: planConfig.priceId, quantity: 1 }],
       subscription_data: {
         trial_period_days:
-          org.plan === "free" && !org.trialEndsAt ? 14 : undefined,
+          org.plan === "free" && !org.trialEndsAt ? 30 : undefined,
         metadata: { organizationId: org.id },
       },
       success_url: `${origin}/admin/billing?success=true`,
       cancel_url: `${origin}/admin/billing?canceled=true`,
       metadata: { organizationId: org.id },
-    });
+    };
+
+    // Apply coupon (e.g. Founding Partner discount)
+    if (coupon) {
+      sessionParams.discounts = [{ coupon }];
+      // Can't combine discounts with trial_period_days
+      (sessionParams.subscription_data as Record<string, unknown>).trial_period_days = undefined;
+    }
+
+    const session = await stripe.checkout.sessions.create(
+      sessionParams as Parameters<typeof stripe.checkout.sessions.create>[0]
+    );
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
