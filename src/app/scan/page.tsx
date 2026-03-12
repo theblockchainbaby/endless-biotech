@@ -164,7 +164,7 @@ export default function ScanPage() {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      <PageHeader title="Scan Vessel" description="Scan a barcode to create or update a vessel" />
+      <PageHeader title="Scan Vessel" description="Scan or type a barcode to create or update a vessel" />
 
       {!scannedBarcode ? (
         <>

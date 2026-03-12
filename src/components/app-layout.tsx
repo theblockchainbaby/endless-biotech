@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { WelcomeModal } from "@/components/welcome-modal";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { status } = useSession();
@@ -32,6 +33,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <AppSidebar />
       <SidebarInset>
         <main className="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full">
+          <WelcomeModal />
           {children}
         </main>
       </SidebarInset>

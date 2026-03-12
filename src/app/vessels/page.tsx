@@ -186,7 +186,23 @@ export default function VesselsPage() {
       {loading ? (
         <p className="text-center text-muted-foreground py-8">Loading...</p>
       ) : vessels.length === 0 ? (
-        <p className="text-center text-muted-foreground py-8">No vessels found</p>
+        <Card>
+          <CardContent className="py-12 text-center space-y-3">
+            <p className="text-lg font-medium">No vessels found</p>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              Vessels are the core of your lab — each one tracks a jar from initiation through hardening.
+              Scan a barcode or import a CSV to get started.
+            </p>
+            <div className="flex justify-center gap-2 pt-2">
+              <Button asChild size="sm">
+                <Link href="/scan">Scan First Vessel</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/import">Import CSV</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
         <>
           {/* Desktop table */}

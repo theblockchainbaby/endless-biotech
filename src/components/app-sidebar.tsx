@@ -25,6 +25,7 @@ import {
   Settings,
   LogOut,
   ChevronDown,
+  ChevronRight,
   Upload,
   Users,
   GitBranch,
@@ -108,10 +109,14 @@ const navGroups = [
   },
 ];
 
+// Groups that collapse by default (expand if user is on a page within them)
+const COLLAPSIBLE_GROUPS = new Set(["Facility", "Intelligence", "Admin"]);
+
 export function AppSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [pinSwitchOpen, setPinSwitchOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const user = session?.user;
   const initials = user?.name
@@ -120,6 +125,24 @@ export function AppSidebar() {
     .join("")
     .toUpperCase()
     .slice(0, 2) || "?";
+
+  const toggleGroup = (label: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  };
+
+  const isGroupVisible = (group: typeof navGroups[0]) => {
+    if (!COLLAPSIBLE_GROUPS.has(group.label)) return true;
+    if (expandedGroups.has(group.label)) return true;
+    // Auto-expand if user is on a page in this group
+    return group.items.some((item) =>
+      item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
+    );
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -147,31 +170,47 @@ export function AppSidebar() {
       </div>
 
       <SidebarContent>
-        {navGroups.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items.map((item) => {
-                  const isActive =
-                    item.href === "/"
-                      ? pathname === "/"
-                      : pathname.startsWith(item.href);
-                  return (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                        <Link href={item.href}>
-                          <item.icon className="size-4" />
-                          <span>{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        {navGroups.map((group) => {
+          const isCollapsible = COLLAPSIBLE_GROUPS.has(group.label);
+          const visible = isGroupVisible(group);
+          return (
+            <SidebarGroup key={group.label}>
+              {isCollapsible ? (
+                <SidebarGroupLabel
+                  className="cursor-pointer select-none"
+                  onClick={() => toggleGroup(group.label)}
+                >
+                  <ChevronRight className={`size-3 mr-1 transition-transform ${visible ? "rotate-90" : ""}`} />
+                  {group.label}
+                </SidebarGroupLabel>
+              ) : (
+                <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              )}
+              {visible && (
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {group.items.map((item) => {
+                      const isActive =
+                        item.href === "/"
+                          ? pathname === "/"
+                          : pathname.startsWith(item.href);
+                      return (
+                        <SidebarMenuItem key={item.href}>
+                          <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                            <Link href={item.href}>
+                              <item.icon className="size-4" />
+                              <span>{item.label}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              )}
+            </SidebarGroup>
+          );
+        })}
       </SidebarContent>
 
       <SidebarFooter>

@@ -162,8 +162,13 @@ export default function CultivarsPage() {
         <p className="text-center text-muted-foreground py-8">Loading...</p>
       ) : filtered.length === 0 ? (
         <Card>
-          <CardContent className="pt-6 text-center text-muted-foreground">
-            <p>{search ? "No cultivars match your search." : "No cultivars yet. Add your first cultivar to get started."}</p>
+          <CardContent className="py-12 text-center space-y-3">
+            <p className="text-lg font-medium">{search ? "No cultivars match your search" : "No cultivars yet"}</p>
+            {!search && (
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                Cultivars define your plant varieties — each with its own stage pipeline, multiplication rates, and health tracking. Add your first cultivar to start building your library.
+              </p>
+            )}
           </CardContent>
         </Card>
       ) : (

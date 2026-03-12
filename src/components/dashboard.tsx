@@ -53,13 +53,13 @@ export default function Dashboard() {
 
   if (loading) return (
     <div className="space-y-4">
-      <PageHeader title="Dashboard" description="VitrOS command center" />
+      <PageHeader title="Dashboard" description="Track vessels, spot contamination, plan subcultures" />
       <div className="text-center py-12 text-muted-foreground">Loading dashboard...</div>
     </div>
   );
   if (!stats) return (
     <div className="space-y-4">
-      <PageHeader title="Dashboard" description="VitrOS command center" />
+      <PageHeader title="Dashboard" description="Track vessels, spot contamination, plan subcultures" />
       <div className="text-center py-12 text-muted-foreground">Failed to load stats</div>
     </div>
   );
@@ -73,7 +73,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <PageHeader
         title="Dashboard"
-        description="VitrOS command center"
+        description="Track vessels, spot contamination, plan subcultures"
         actions={
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>

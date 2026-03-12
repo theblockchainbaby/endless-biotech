@@ -79,7 +79,7 @@ export default function TasksPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Daily Tasks" description="Your morning briefing" />
+        <PageHeader title="Daily Tasks" description="Overdue subcultures, transfers, and alerts" />
         <Card><CardContent className="py-8 text-center text-muted-foreground">Loading...</CardContent></Card>
       </div>
     );
@@ -89,7 +89,7 @@ export default function TasksPage() {
     <div className="space-y-6">
       <PageHeader
         title="Daily Tasks"
-        description="What needs attention today"
+        description="Overdue subcultures, transfers, and alerts"
       />
 
       {/* Priority summary cards */}
