@@ -88,6 +88,14 @@ export const createCultivarSchema = z.object({
   notes: z.string().nullable().optional(),
   targetMultiplicationRate: z.number().positive().nullable().optional(),
   defaultMediaRecipeId: z.string().nullable().optional(),
+  stageConfig: z.object({
+    stages: z.array(z.object({
+      name: z.string(),
+      durationWeeks: z.number().int().min(1),
+      multiplicationRate: z.number().min(1),
+      survivalRate: z.number().min(0).max(1),
+    })),
+  }).nullable().optional(),
 });
 
 export const updateCultivarSchema = createCultivarSchema.partial();

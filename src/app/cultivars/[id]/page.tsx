@@ -13,7 +13,7 @@ import { PageHeader } from "@/components/page-header";
 import { CultivarHealthBadge, StageBadge, HealthBadge } from "@/components/status-badge";
 import { STAGE_LABELS, HEALTH_STATUS_LABELS, VESSEL_STATUS_LABELS } from "@/lib/constants";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, RotateCcw } from "lucide-react";
 
 interface CultivarMetrics {
   totalVessels: number;
@@ -28,6 +28,13 @@ interface CultivarMetrics {
   vesselsByStatus: { status: string; count: number }[];
 }
 
+interface StageConfigEntry {
+  name: string;
+  durationWeeks: number;
+  multiplicationRate: number;
+  survivalRate: number;
+}
+
 interface CultivarDetail {
   id: string;
   name: string;
@@ -39,6 +46,7 @@ interface CultivarDetail {
   description: string | null;
   notes: string | null;
   targetMultiplicationRate: number | null;
+  stageConfig: { stages: StageConfigEntry[] } | null;
   defaultMediaRecipe: { id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
@@ -54,6 +62,8 @@ export default function CultivarDetailPage({ params }: { params: Promise<{ id: s
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ name: "", code: "", cultivarType: "in_house", species: "", strain: "", description: "" });
   const [saving, setSaving] = useState(false);
+  const [stageConfig, setStageConfig] = useState<StageConfigEntry[]>([]);
+  const [savingStages, setSavingStages] = useState(false);
 
   const fetchCultivar = () => {
     fetch(`/api/cultivars/${id}`)
@@ -64,6 +74,7 @@ export default function CultivarDetailPage({ params }: { params: Promise<{ id: s
       .then((data) => {
         setCultivar(data);
         setNotes(data.notes || "");
+        setStageConfig(data.stageConfig?.stages || getDefaultStages());
       })
       .catch(() => setCultivar(null))
       .finally(() => setLoading(false));
@@ -135,6 +146,41 @@ export default function CultivarDetailPage({ params }: { params: Promise<{ id: s
       setSaving(false);
     }
   };
+
+  function getDefaultStages(): StageConfigEntry[] {
+    return [
+      { name: "initiation", durationWeeks: 4, multiplicationRate: 1, survivalRate: 0.85 },
+      { name: "multiplication", durationWeeks: 6, multiplicationRate: 3, survivalRate: 0.92 },
+      { name: "rooting", durationWeeks: 4, multiplicationRate: 1, survivalRate: 0.90 },
+      { name: "acclimation", durationWeeks: 4, multiplicationRate: 1, survivalRate: 0.88 },
+      { name: "hardening", durationWeeks: 3, multiplicationRate: 1, survivalRate: 0.95 },
+    ];
+  }
+
+  const updateStageField = (index: number, field: keyof StageConfigEntry, value: number) => {
+    setStageConfig((prev) => prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)));
+  };
+
+  const handleSaveStageConfig = async () => {
+    setSavingStages(true);
+    try {
+      const res = await fetch(`/api/cultivars/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stageConfig: { stages: stageConfig } }),
+      });
+      if (res.ok) {
+        toast.success("Stage pipeline saved");
+        fetchCultivar();
+      } else {
+        toast.error("Failed to save stage config");
+      }
+    } finally {
+      setSavingStages(false);
+    }
+  };
+
+  const totalPipelineWeeks = stageConfig.reduce((sum, s) => sum + s.durationWeeks, 0);
 
   if (loading) return <div className="text-center py-12 text-muted-foreground">Loading...</div>;
   if (!cultivar) return <div className="text-center py-12 text-muted-foreground">Cultivar not found</div>;
@@ -325,6 +371,84 @@ export default function CultivarDetailPage({ params }: { params: Promise<{ id: s
           </CardContent>
         </Card>
       )}
+
+      {/* Stage Pipeline Configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span>Stage Pipeline Configuration</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              Total: {totalPipelineWeeks} weeks ({Math.round(totalPipelineWeeks / 4.3)} months)
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 pr-3">Stage</th>
+                  <th className="text-center py-2 px-2">Duration (wks)</th>
+                  <th className="text-center py-2 px-2">Mult. Rate</th>
+                  <th className="text-center py-2 px-2">Survival %</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stageConfig.map((stage, i) => (
+                  <tr key={stage.name} className="border-b last:border-0">
+                    <td className="py-2 pr-3">
+                      <StageBadge stage={stage.name} />
+                    </td>
+                    <td className="py-2 px-2">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={52}
+                        value={stage.durationWeeks}
+                        onChange={(e) => updateStageField(i, "durationWeeks", parseInt(e.target.value) || 1)}
+                        className="w-20 mx-auto text-center h-8 font-mono"
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <Input
+                        type="number"
+                        min={1}
+                        step={0.1}
+                        value={stage.multiplicationRate}
+                        onChange={(e) => updateStageField(i, "multiplicationRate", parseFloat(e.target.value) || 1)}
+                        className="w-20 mx-auto text-center h-8 font-mono"
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={Math.round(stage.survivalRate * 100)}
+                        onChange={(e) => updateStageField(i, "survivalRate", (parseInt(e.target.value) || 0) / 100)}
+                        className="w-20 mx-auto text-center h-8 font-mono"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button onClick={handleSaveStageConfig} disabled={savingStages} size="sm">
+              {savingStages ? "Saving..." : "Save Pipeline"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setStageConfig(getDefaultStages())}
+            >
+              <RotateCcw className="size-3.5 mr-1.5" /> Reset Defaults
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Notes & Observations */}
       <Card>

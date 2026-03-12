@@ -86,7 +86,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const cultivar = await prisma.cultivar.update({
       where: { id },
-      data: body,
+      data: body as Parameters<typeof prisma.cultivar.update>[0]["data"],
     });
 
     return NextResponse.json(cultivar);
