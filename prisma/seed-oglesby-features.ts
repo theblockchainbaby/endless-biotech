@@ -28,6 +28,65 @@ async function main() {
   await prisma.apiKey.deleteMany({ where: { organizationId: org.id } });
   await prisma.webhookEndpoint.deleteMany({ where: { organizationId: org.id } });
 
+  // ── Stage Pipeline Configs (per-cultivar) ──
+  // Realistic configs — Spathiphyllum multiplies fast, Anthurium is slow/difficult
+  const stageConfigs: Record<string, object> = {
+    "SPA-SEN": { stages: [
+      { name: "initiation", durationWeeks: 3, multiplicationRate: 1, survivalRate: 0.90 },
+      { name: "multiplication", durationWeeks: 5, multiplicationRate: 4, survivalRate: 0.93 },
+      { name: "rooting", durationWeeks: 3, multiplicationRate: 1, survivalRate: 0.92 },
+      { name: "acclimation", durationWeeks: 4, multiplicationRate: 1, survivalRate: 0.90 },
+      { name: "hardening", durationWeeks: 3, multiplicationRate: 1, survivalRate: 0.95 },
+    ]},
+    "SPA-SWP": { stages: [
+      { name: "initiation", durationWeeks: 3, multiplicationRate: 1, survivalRate: 0.88 },
+      { name: "multiplication", durationWeeks: 5, multiplicationRate: 3.5, survivalRate: 0.91 },
+      { name: "rooting", durationWeeks: 3, multiplicationRate: 1, survivalRate: 0.90 },
+      { name: "acclimation", durationWeeks: 4, multiplicationRate: 1, survivalRate: 0.88 },
+      { name: "hardening", durationWeeks: 3, multiplicationRate: 1, survivalRate: 0.94 },
+    ]},
+    "ANT-TKP": { stages: [
+      { name: "initiation", durationWeeks: 5, multiplicationRate: 1, survivalRate: 0.80 },
+      { name: "multiplication", durationWeeks: 8, multiplicationRate: 2.5, survivalRate: 0.88 },
+      { name: "rooting", durationWeeks: 5, multiplicationRate: 1, survivalRate: 0.85 },
+      { name: "acclimation", durationWeeks: 5, multiplicationRate: 1, survivalRate: 0.82 },
+      { name: "hardening", durationWeeks: 4, multiplicationRate: 1, survivalRate: 0.92 },
+    ]},
+    "ANT-PIZ": { stages: [
+      { name: "initiation", durationWeeks: 5, multiplicationRate: 1, survivalRate: 0.78 },
+      { name: "multiplication", durationWeeks: 8, multiplicationRate: 2, survivalRate: 0.87 },
+      { name: "rooting", durationWeeks: 5, multiplicationRate: 1, survivalRate: 0.84 },
+      { name: "acclimation", durationWeeks: 5, multiplicationRate: 1, survivalRate: 0.80 },
+      { name: "hardening", durationWeeks: 4, multiplicationRate: 1, survivalRate: 0.90 },
+    ]},
+    "MAN-FLR": { stages: [
+      { name: "initiation", durationWeeks: 4, multiplicationRate: 1, survivalRate: 0.85 },
+      { name: "multiplication", durationWeeks: 6, multiplicationRate: 3, survivalRate: 0.90 },
+      { name: "rooting", durationWeeks: 4, multiplicationRate: 1, survivalRate: 0.88 },
+      { name: "acclimation", durationWeeks: 3, multiplicationRate: 1, survivalRate: 0.90 },
+      { name: "hardening", durationWeeks: 3, multiplicationRate: 1, survivalRate: 0.95 },
+    ]},
+    "SCH-AMA": { stages: [
+      { name: "initiation", durationWeeks: 4, multiplicationRate: 1, survivalRate: 0.88 },
+      { name: "multiplication", durationWeeks: 6, multiplicationRate: 3.5, survivalRate: 0.92 },
+      { name: "rooting", durationWeeks: 4, multiplicationRate: 1, survivalRate: 0.90 },
+      { name: "acclimation", durationWeeks: 3, multiplicationRate: 1, survivalRate: 0.88 },
+      { name: "hardening", durationWeeks: 2, multiplicationRate: 1, survivalRate: 0.96 },
+    ]},
+  };
+
+  let stageConfigCount = 0;
+  for (const [code, config] of Object.entries(stageConfigs)) {
+    const cultivar = cultivars.find(c => c.code === code);
+    if (!cultivar) continue;
+    await prisma.cultivar.update({
+      where: { id: cultivar.id },
+      data: { stageConfig: config },
+    });
+    stageConfigCount++;
+  }
+  console.log(`✓ ${stageConfigCount} cultivar stage pipeline configs set`);
+
   // ── Clone Lines ──
   const cloneLineData = [
     { cultivarCode: "SPA-SEN", lines: [
@@ -153,7 +212,8 @@ async function main() {
   const assignedVessels = await prisma.vessel.count({ where: { organizationId: org.id, cloneLineId: { not: null } } });
 
   console.log(`\n═══════════════════════════════════════`);
-  console.log(`Oglesby Demo — New Features Seeded`);
+  console.log(`Oglesby Demo — Features Seeded`);
+  console.log(`  Stage Pipeline Configs: ${stageConfigCount}`);
   console.log(`  Clone Lines: ${clCount}`);
   console.log(`  Vessels Assigned to Lines: ${assignedVessels}`);
   console.log(`  Sales Orders: ${soCount}`);

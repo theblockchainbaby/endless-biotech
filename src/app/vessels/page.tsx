@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge, HealthBadge, StageBadge } from "@/components/status-badge";
 import { VESSEL_STATUS_LABELS, HEALTH_STATUS_LABELS, STAGE_LABELS } from "@/lib/constants";
@@ -14,8 +15,11 @@ import { exportToCSV, flattenVesselForExport } from "@/lib/csv-export";
 import { ImportDialog } from "@/components/import-dialog";
 import type { Vessel, Cultivar } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
+import { ArrowUp, Trash2, Heart, X } from "lucide-react";
 
 type Tab = "active" | "media_prep" | "all";
+type BatchAction = "advance_stage" | "health_check" | "dispose";
 
 export default function VesselsPage() {
   const [vessels, setVessels] = useState<Vessel[]>([]);
@@ -31,6 +35,10 @@ export default function VesselsPage() {
   const [loading, setLoading] = useState(true);
   const [mediaPrepCount, setMediaPrepCount] = useState(0);
   const [importOpen, setImportOpen] = useState(false);
+
+  // Multi-select state
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [batchLoading, setBatchLoading] = useState(false);
 
   const fetchVessels = useCallback(async () => {
     setLoading(true);
@@ -69,7 +77,57 @@ export default function VesselsPage() {
     setPage(1);
   }, [search, tab, statusFilter, cultivarFilter, healthFilter, stageFilter]);
 
+  // Clear selection when filters/page change
+  useEffect(() => {
+    setSelected(new Set());
+  }, [page, tab, statusFilter, cultivarFilter, healthFilter, stageFilter]);
+
   const totalPages = Math.ceil(total / 50);
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selected.size === vessels.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(vessels.map((v) => v.id)));
+    }
+  };
+
+  const handleBatchAction = async (action: BatchAction, params?: Record<string, unknown>) => {
+    if (selected.size === 0) return;
+    setBatchLoading(true);
+    try {
+      const res = await fetch("/api/vessels/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vesselIds: Array.from(selected),
+          action,
+          params,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`${data.success} of ${data.total} vessels updated`);
+        setSelected(new Set());
+        fetchVessels();
+      } else {
+        toast.error(data.error || "Batch operation failed");
+      }
+    } catch {
+      toast.error("Batch operation failed");
+    } finally {
+      setBatchLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -182,6 +240,51 @@ export default function VesselsPage() {
         </CardContent>
       </Card>
 
+      {/* Batch Action Bar */}
+      {selected.size > 0 && (
+        <div className="sticky top-0 z-10 flex items-center gap-3 bg-primary text-primary-foreground rounded-lg px-4 py-2.5 shadow-lg">
+          <span className="text-sm font-medium">{selected.size} selected</span>
+          <div className="flex-1" />
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={batchLoading}
+            onClick={() => handleBatchAction("advance_stage")}
+          >
+            <ArrowUp className="size-3.5 mr-1.5" /> Advance Stage
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={batchLoading}
+            onClick={() => handleBatchAction("health_check", { healthStatus: "healthy" })}
+          >
+            <Heart className="size-3.5 mr-1.5" /> Mark Healthy
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="text-red-600"
+            disabled={batchLoading}
+            onClick={() => {
+              if (confirm(`Dispose ${selected.size} vessels? This cannot be undone.`)) {
+                handleBatchAction("dispose", { reason: "Batch disposal from vessel list" });
+              }
+            }}
+          >
+            <Trash2 className="size-3.5 mr-1.5" /> Dispose
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-7 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
+            onClick={() => setSelected(new Set())}
+          >
+            <X className="size-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Table */}
       {loading ? (
         <p className="text-center text-muted-foreground py-8">Loading...</p>
@@ -210,6 +313,13 @@ export default function VesselsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={vessels.length > 0 && selected.size === vessels.length}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
                   <TableHead>Barcode</TableHead>
                   <TableHead>Cultivar</TableHead>
                   <TableHead>Stage</TableHead>
@@ -221,7 +331,17 @@ export default function VesselsPage() {
               </TableHeader>
               <TableBody>
                 {vessels.map((v) => (
-                  <TableRow key={v.id}>
+                  <TableRow
+                    key={v.id}
+                    className={selected.has(v.id) ? "bg-primary/5" : ""}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={selected.has(v.id)}
+                        onCheckedChange={() => toggleSelect(v.id)}
+                        aria-label={`Select ${v.barcode}`}
+                      />
+                    </TableCell>
                     <TableCell>
                       <Link href={`/vessels/${v.id}`} className="font-mono hover:underline">
                         {v.barcode}
@@ -244,27 +364,35 @@ export default function VesselsPage() {
           {/* Mobile cards */}
           <div className="md:hidden space-y-3">
             {vessels.map((v) => (
-              <Link key={v.id} href={`/vessels/${v.id}`}>
-                <Card className="hover:bg-accent/50 transition-colors">
-                  <CardContent className="pt-4 pb-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-mono font-medium">{v.barcode}</p>
-                        <p className="text-sm text-muted-foreground">{v.cultivar?.name || "No cultivar"}</p>
+              <div key={v.id} className="flex items-start gap-2">
+                <Checkbox
+                  checked={selected.has(v.id)}
+                  onCheckedChange={() => toggleSelect(v.id)}
+                  className="mt-4"
+                  aria-label={`Select ${v.barcode}`}
+                />
+                <Link href={`/vessels/${v.id}`} className="flex-1">
+                  <Card className={`hover:bg-accent/50 transition-colors ${selected.has(v.id) ? "bg-primary/5" : ""}`}>
+                    <CardContent className="pt-4 pb-3">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-mono font-medium">{v.barcode}</p>
+                          <p className="text-sm text-muted-foreground">{v.cultivar?.name || "No cultivar"}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          <StageBadge stage={v.stage} />
+                          <StatusBadge status={v.status} />
+                          <HealthBadge status={v.healthStatus} />
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        <StageBadge stage={v.stage} />
-                        <StatusBadge status={v.status} />
-                        <HealthBadge status={v.healthStatus} />
+                      <div className="flex justify-between mt-2 text-sm text-muted-foreground">
+                        <span>{v.explantCount} explants</span>
+                        <span>{formatDistanceToNow(new Date(v.updatedAt), { addSuffix: true })}</span>
                       </div>
-                    </div>
-                    <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-                      <span>{v.explantCount} explants</span>
-                      <span>{formatDistanceToNow(new Date(v.updatedAt), { addSuffix: true })}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </div>
             ))}
           </div>
 

@@ -23,8 +23,18 @@ const STAGE_COLORS: Record<string, string> = {
   hardening: "#14b8a6",
 };
 
+interface CultivarOption {
+  id: string;
+  name: string;
+  stageConfig?: {
+    stages: { name: string; durationWeeks: number; multiplicationRate: number; survivalRate: number }[];
+  } | null;
+}
+
 export default function ForecastingPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [cultivars, setCultivars] = useState<CultivarOption[]>([]);
+  const [selectedCultivar, setSelectedCultivar] = useState("all");
   const [forecast, setForecast] = useState<ForecastPoint[]>([]);
   const [weeks, setWeeks] = useState("8");
   const [multRate, setMultRate] = useState("3.0");
@@ -33,10 +43,26 @@ export default function ForecastingPage() {
   const [subcultureWeeks, setSubcultureWeeks] = useState("2");
 
   useEffect(() => {
-    fetch("/api/stats")
-      .then((r) => r.json())
-      .then(setStats);
+    fetch("/api/stats").then((r) => r.json()).then(setStats);
+    fetch("/api/cultivars").then((r) => r.json()).then((data) => {
+      setCultivars(Array.isArray(data) ? data : data.cultivars || []);
+    });
   }, []);
+
+  // When a cultivar with stageConfig is selected, pre-fill parameters
+  const handleCultivarChange = (value: string) => {
+    setSelectedCultivar(value);
+    if (value !== "all") {
+      const cv = cultivars.find((c) => c.id === value);
+      if (cv?.stageConfig?.stages?.length) {
+        const multStage = cv.stageConfig.stages.find((s) => s.name === "multiplication");
+        if (multStage) {
+          setMultRate(String(multStage.multiplicationRate));
+          setLossRate(String(Math.round((1 - multStage.survivalRate) * 100) / 100));
+        }
+      }
+    }
+  };
 
   useEffect(() => {
     if (!stats?.vesselsByStage) return;
@@ -96,7 +122,21 @@ export default function ForecastingPage() {
           <CardTitle className="text-base">Forecast Parameters</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+            <div>
+              <Label>Cultivar</Label>
+              <Select value={selectedCultivar} onValueChange={handleCultivarChange}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Cultivars</SelectItem>
+                  {cultivars.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}{c.stageConfig ? " *" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>Weeks Ahead</Label>
               <Select value={weeks} onValueChange={setWeeks}>

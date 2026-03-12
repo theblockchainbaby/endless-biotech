@@ -112,21 +112,26 @@ export function getTotalPipelineWeeks(stages: StageYield[] = DEFAULT_STAGES): nu
 }
 
 /**
- * Generate demand projections from sales orders + current pipeline state
+ * Generate demand projections from sales orders + current pipeline state.
+ * Supports per-cultivar stage configs: pass a map of cultivarId -> StageYield[].
  */
 export function generateDemandProjections(
   orders: DemandOrder[],
   pipelineByCultivar: Record<string, number>, // cultivarId -> active vessel count
-  stages: StageYield[] = DEFAULT_STAGES
+  stages: StageYield[] = DEFAULT_STAGES,
+  stagesByCultivar?: Record<string, StageYield[]>
 ): DemandSummary {
   const now = new Date();
-  const totalPipelineWeeks = getTotalPipelineWeeks(stages);
 
   const projections: DemandProjection[] = orders.map((order) => {
+    // Use per-cultivar stages if available, else fall back to default
+    const orderStages = stagesByCultivar?.[order.cultivarId] || stages;
+    const orderPipelineWeeks = getTotalPipelineWeeks(orderStages);
+
     const dueDate = new Date(order.dueDate);
     const weeksUntilDue = Math.max(0, Math.round((dueDate.getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000)));
 
-    const requiredByStage = calculateBackwardRequirements(order.quantity, stages);
+    const requiredByStage = calculateBackwardRequirements(order.quantity, orderStages);
     const currentInPipeline = pipelineByCultivar[order.cultivarId] || 0;
 
     // The gap is: vessels needed at initiation minus what's already in pipeline
@@ -135,7 +140,7 @@ export function generateDemandProjections(
 
     // Calculate initiation deadline
     const initiationDeadline = new Date(dueDate);
-    initiationDeadline.setDate(initiationDeadline.getDate() - totalPipelineWeeks * 7);
+    initiationDeadline.setDate(initiationDeadline.getDate() - orderPipelineWeeks * 7);
 
     let status: "on_track" | "at_risk" | "behind" = "on_track";
     if (gap > 0 && now > initiationDeadline) {
@@ -269,10 +274,10 @@ export function generateProductionSchedule(
   orders: DemandOrder[],
   pipelineByCultivar: Record<string, number>,
   stages: StageYield[] = DEFAULT_STAGES,
-  weeksOut: number = 36
+  weeksOut: number = 36,
+  stagesByCultivar?: Record<string, StageYield[]>
 ): ScheduleWeek[] {
   const now = new Date();
-  const totalPipelineWeeks = getTotalPipelineWeeks(stages);
   const schedule: ScheduleWeek[] = [];
 
   // Build per-order timeline: when to initiate, when each stage transition happens, when to ship
@@ -282,34 +287,38 @@ export function generateProductionSchedule(
     stageTransitions: { week: number; fromStage: string; toStage: string; quantity: number }[];
     shipWeek: number;
     initiationQuantity: number;
+    orderStages: StageYield[];
   }
 
   const timelines: OrderTimeline[] = [];
 
   for (const order of orders) {
+    const orderStages = stagesByCultivar?.[order.cultivarId] || stages;
+    const orderPipelineWeeks = getTotalPipelineWeeks(orderStages);
+
     const dueDate = new Date(order.dueDate);
     const shipWeek = Math.max(0, Math.round((dueDate.getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000)));
     if (shipWeek > weeksOut) continue;
 
-    const requirements = calculateBackwardRequirements(order.quantity, stages);
+    const requirements = calculateBackwardRequirements(order.quantity, orderStages);
     const currentPipeline = pipelineByCultivar[order.cultivarId] || 0;
     const initiationNeeded = Math.max(0, (requirements["initiation"] || 0) - currentPipeline);
 
     if (initiationNeeded === 0 && currentPipeline >= order.quantity) continue;
 
     // Calculate when each stage transition happens (working forward from initiation)
-    const initiateWeek = Math.max(0, shipWeek - totalPipelineWeeks);
+    const initiateWeek = Math.max(0, shipWeek - orderPipelineWeeks);
     const transitions: { week: number; fromStage: string; toStage: string; quantity: number }[] = [];
     let currentWeek = initiateWeek;
     let currentQty = initiationNeeded > 0 ? initiationNeeded : requirements["initiation"] || 0;
 
-    for (let i = 0; i < stages.length - 1; i++) {
-      currentWeek += stages[i].durationWeeks;
-      const surviving = Math.round(currentQty * stages[i].survivalRate * stages[i].multiplicationRate);
+    for (let i = 0; i < orderStages.length - 1; i++) {
+      currentWeek += orderStages[i].durationWeeks;
+      const surviving = Math.round(currentQty * orderStages[i].survivalRate * orderStages[i].multiplicationRate);
       transitions.push({
         week: currentWeek,
-        fromStage: stages[i].stage,
-        toStage: stages[i + 1].stage,
+        fromStage: orderStages[i].stage,
+        toStage: orderStages[i + 1].stage,
         quantity: surviving,
       });
       currentQty = surviving;
@@ -321,6 +330,7 @@ export function generateProductionSchedule(
       stageTransitions: transitions,
       shipWeek,
       initiationQuantity: initiationNeeded > 0 ? initiationNeeded : 0,
+      orderStages,
     });
   }
 
@@ -359,13 +369,14 @@ export function generateProductionSchedule(
       }
 
       // Subculture (multiplication) actions — during multiplication stage
-      const multStageIndex = stages.findIndex((s) => s.stage === "multiplication");
+      const os = tl.orderStages;
+      const multStageIndex = os.findIndex((s) => s.stage === "multiplication");
       if (multStageIndex >= 0) {
-        const multStart = tl.initiateWeek + stages[0].durationWeeks;
-        const multEnd = multStart + stages[multStageIndex].durationWeeks;
+        const multStart = tl.initiateWeek + os[0].durationWeeks;
+        const multEnd = multStart + os[multStageIndex].durationWeeks;
         const subcultureInterval = 2; // every 2 weeks
         if (week > multStart && week < multEnd && (week - multStart) % subcultureInterval === 0) {
-          const estQty = Math.round(tl.initiationQuantity * stages[0].survivalRate);
+          const estQty = Math.round(tl.initiationQuantity * os[0].survivalRate);
           if (estQty > 0) {
             actions.push({
               type: "subculture",

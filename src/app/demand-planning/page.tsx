@@ -19,6 +19,7 @@ import {
   type DemandOrder,
   type DemandSummary,
   type ScheduleWeek,
+  type StageYield,
 } from "@/lib/demand-forecast";
 import { STAGE_LABELS } from "@/lib/constants";
 import {
@@ -40,10 +41,13 @@ interface SalesOrder {
   notes: string | null;
 }
 
-interface Cultivar {
+interface CultivarWithConfig {
   id: string;
   name: string;
   code: string | null;
+  stageConfig?: {
+    stages: { name: string; durationWeeks: number; multiplicationRate: number; survivalRate: number }[];
+  } | null;
 }
 
 const STATUS_ICONS: Record<string, React.ReactNode> = {
@@ -70,7 +74,7 @@ type ViewTab = "projections" | "schedule";
 
 export default function DemandPlanningPage() {
   const [orders, setOrders] = useState<SalesOrder[]>([]);
-  const [cultivars, setCultivars] = useState<Cultivar[]>([]);
+  const [cultivars, setCultivars] = useState<CultivarWithConfig[]>([]);
   const [summary, setSummary] = useState<DemandSummary | null>(null);
   const [schedule, setSchedule] = useState<ScheduleWeek[]>([]);
   const [longRange, setLongRange] = useState<{ week: number; date: string; cumulativeOutput: number; byStage: Record<string, number> }[]>([]);
@@ -99,7 +103,7 @@ export default function DemandPlanningPage() {
     ]);
 
     const orderList: SalesOrder[] = ordersRes;
-    const cultivarList: Cultivar[] = Array.isArray(cultivarRes) ? cultivarRes : cultivarRes.cultivars || [];
+    const cultivarList: CultivarWithConfig[] = Array.isArray(cultivarRes) ? cultivarRes : cultivarRes.cultivars || [];
     setOrders(orderList);
     setCultivars(cultivarList);
 
@@ -111,6 +115,19 @@ export default function DemandPlanningPage() {
       });
     }
     setPipelineData(pipelineByCultivar);
+
+    // Build per-cultivar stage configs from cultivar stageConfig field
+    const stagesByCultivar: Record<string, StageYield[]> = {};
+    for (const c of cultivarList) {
+      if (c.stageConfig?.stages?.length) {
+        stagesByCultivar[c.id] = c.stageConfig.stages.map((s) => ({
+          stage: s.name,
+          durationWeeks: s.durationWeeks,
+          multiplicationRate: s.multiplicationRate,
+          survivalRate: s.survivalRate,
+        }));
+      }
+    }
 
     // Generate demand projections
     const dOrders: DemandOrder[] = orderList
@@ -128,11 +145,11 @@ export default function DemandPlanningPage() {
     setDemandOrders(dOrders);
 
     if (dOrders.length > 0) {
-      const projections = generateDemandProjections(dOrders, pipelineByCultivar);
+      const projections = generateDemandProjections(dOrders, pipelineByCultivar, getDefaultStages(), stagesByCultivar);
       setSummary(projections);
 
       // Generate production schedule
-      const sched = generateProductionSchedule(dOrders, pipelineByCultivar);
+      const sched = generateProductionSchedule(dOrders, pipelineByCultivar, getDefaultStages(), 36, stagesByCultivar);
       setSchedule(sched);
     }
 
