@@ -437,7 +437,7 @@ export function LandingPage() {
           >
             <div className="relative rounded-xl border-2 border-primary/30 bg-primary/5 p-6 text-center">
               <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4">
-                Limited — 2 spots remaining
+                Limited — 1 spot remaining
               </Badge>
               <h3 className="text-xl font-bold mt-1 mb-2">Founding Partner Program</h3>
               <p className="text-muted-foreground text-sm mb-3">
