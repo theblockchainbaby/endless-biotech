@@ -30,6 +30,7 @@ import {
   GitBranch,
   ShoppingCart,
   Plug,
+  CalendarClock,
 } from "lucide-react";
 import {
   Sidebar,
@@ -63,6 +64,7 @@ const navGroups = [
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard },
       { href: "/scan", label: "Scan", icon: ScanBarcode },
+      { href: "/tasks", label: "Daily Tasks", icon: CalendarClock },
     ],
   },
   {
