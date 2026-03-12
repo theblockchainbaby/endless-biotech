@@ -80,6 +80,9 @@ export default function ForecastingPage() {
                   <SelectItem value="4">4 weeks</SelectItem>
                   <SelectItem value="8">8 weeks</SelectItem>
                   <SelectItem value="12">12 weeks</SelectItem>
+                  <SelectItem value="20">20 weeks (5 mo)</SelectItem>
+                  <SelectItem value="30">30 weeks (7 mo)</SelectItem>
+                  <SelectItem value="44">44 weeks (10 mo)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

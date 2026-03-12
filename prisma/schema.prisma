@@ -34,6 +34,10 @@ model Organization {
   inventoryItems InventoryItem[]
   protocols      Protocol[]
   alerts         Alert[]
+  cloneLines     CloneLine[]
+  salesOrders    SalesOrder[]
+  apiKeys        ApiKey[]
+  webhookEndpoints WebhookEndpoint[]
 }
 
 model Site {
@@ -152,6 +156,7 @@ model Cultivar {
   description            String?
   notes                  String?  // Ongoing observations
   targetMultiplicationRate Float? // expected 2-3x
+  stageConfig            Json?    // { stages: [{ name, durationWeeks, multiplicationRate, lossRate }] }
   defaultMediaRecipeId   String?
   defaultMediaRecipe     MediaRecipe? @relation("DefaultRecipe", fields: [defaultMediaRecipeId], references: [id])
   organizationId         String
@@ -159,8 +164,10 @@ model Cultivar {
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
-  vessels Vessel[]
-  photos  Photo[]  @relation("CultivarPhotos")
+  vessels    Vessel[]
+  photos     Photo[]     @relation("CultivarPhotos")
+  cloneLines CloneLine[]
+  salesOrders SalesOrder[]
 
   @@unique([name, organizationId])
   @@unique([code, organizationId])
@@ -244,6 +251,8 @@ model Vessel {
   contaminationDate  DateTime?
   disposalReason     String?   // contaminated, dead, end_of_life, experiment_complete
   notes              String?
+  cloneLineId        String?
+  cloneLine          CloneLine? @relation(fields: [cloneLineId], references: [id])
   parentVesselId     String?
   parentVessel       Vessel?   @relation("VesselLineage", fields: [parentVesselId], references: [id])
   childVessels       Vessel[]  @relation("VesselLineage")
@@ -268,6 +277,7 @@ model Vessel {
   @@index([locationId])
   @@index([nextSubcultureDate])
   @@index([parentVesselId])
+  @@index([cloneLineId])
 }
 
 // ==================== ACTIVITY (AUDIT TRAIL) ====================
@@ -407,4 +417,91 @@ model Alert {
 
   @@index([organizationId, isRead])
   @@index([userId])
+}
+
+// ==================== CLONE LINES ====================
+
+model CloneLine {
+  id             String   @id @default(cuid())
+  name           String   // e.g. "Spathiphyllum-CL001"
+  code           String?  // short code for labeling
+  cultivarId     String
+  cultivar       Cultivar @relation(fields: [cultivarId], references: [id])
+  sourceType     String   @default("mother_plant") // mother_plant, meristem, seed
+  motherPlantId  String?  // reference to original mother plant
+  startDate      DateTime @default(now())
+  status         String   @default("active") // active, retired, quarantined
+  notes          String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  vessels Vessel[]
+
+  @@unique([code, organizationId])
+  @@index([organizationId])
+  @@index([cultivarId])
+  @@index([status])
+}
+
+// ==================== SALES ORDERS (DEMAND PLANNING) ====================
+
+model SalesOrder {
+  id             String   @id @default(cuid())
+  orderNumber    String
+  customerName   String
+  cultivarId     String
+  cultivar       Cultivar @relation(fields: [cultivarId], references: [id])
+  quantity       Int      // total plants needed
+  unitType       String   @default("plugs") // plugs, liners, rooted_cuttings, tissue_culture_jars
+  dueDate        DateTime
+  status         String   @default("pending") // pending, in_production, partially_fulfilled, fulfilled, cancelled
+  priority       String   @default("normal") // low, normal, high, urgent
+  notes          String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([orderNumber, organizationId])
+  @@index([organizationId])
+  @@index([cultivarId])
+  @@index([dueDate])
+  @@index([status])
+}
+
+// ==================== INTEGRATION API ====================
+
+model ApiKey {
+  id             String   @id @default(cuid())
+  name           String   // e.g. "Fox ERP Integration"
+  keyHash        String   @unique // SHA-256 hash of the actual key
+  keyPrefix      String   // first 8 chars for identification (e.g. "vtrs_abc1")
+  permissions    Json     // ["vessels:read", "vessels:write", "orders:read"]
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  isActive       Boolean  @default(true)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([keyHash])
+}
+
+model WebhookEndpoint {
+  id             String   @id @default(cuid())
+  url            String   // https://fox.oglesby.com/api/webhooks/vitros
+  events         Json     // ["vessel.multiplied", "vessel.stage_advanced", "order.fulfilled"]
+  secret         String   // HMAC signing secret
+  isActive       Boolean  @default(true)
+  lastDeliveredAt DateTime?
+  failureCount   Int      @default(0)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
 }

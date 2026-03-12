@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, handleApiError, parseBody } from "@/lib/api-helpers";
 import { multiplyVesselSchema } from "@/lib/validations";
+import { dispatchWebhook } from "@/lib/webhooks";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -61,6 +62,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           data: {
             barcode: child.barcode,
             cultivarId: parent.cultivarId,
+            cloneLineId: parent.cloneLineId,
             mediaRecipeId: child.mediaRecipeId || parent.mediaRecipeId,
             locationId: parent.locationId,
             explantCount: child.explantCount || 0,
@@ -93,6 +95,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
 
       return children;
+    });
+
+    // Dispatch webhook (fire-and-forget)
+    dispatchWebhook(user.organizationId, "vessel.multiplied", {
+      parentId: id,
+      parentBarcode: parent.barcode,
+      childCount: created.length,
+      children: created.map((c) => ({ id: c.id, barcode: c.barcode })),
     });
 
     return NextResponse.json(

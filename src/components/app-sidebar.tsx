@@ -27,6 +27,9 @@ import {
   ChevronDown,
   Upload,
   Users,
+  GitBranch,
+  ShoppingCart,
+  Plug,
 } from "lucide-react";
 import {
   Sidebar,
@@ -69,6 +72,7 @@ const navGroups = [
       { href: "/batch", label: "Batch Ops", icon: Layers },
       { href: "/import", label: "CSV Import", icon: Upload },
       { href: "/cultivars", label: "Cultivars", icon: Leaf },
+      { href: "/clone-lines", label: "Clone Lines", icon: GitBranch },
       { href: "/media", label: "Media", icon: TestTubes },
     ],
   },
@@ -85,6 +89,7 @@ const navGroups = [
     items: [
       { href: "/analytics", label: "Analytics", icon: BarChart3 },
       { href: "/forecasting", label: "Forecasting", icon: TrendingUp },
+      { href: "/demand-planning", label: "Demand Planning", icon: ShoppingCart },
       { href: "/reports", label: "Reports", icon: FileText },
       { href: "/activity", label: "Audit Log", icon: ClipboardList },
       { href: "/protocols", label: "SOPs", icon: BookOpen },
@@ -94,6 +99,7 @@ const navGroups = [
     label: "Admin",
     items: [
       { href: "/labels", label: "Labels", icon: Tag },
+      { href: "/integrations", label: "Integrations", icon: Plug },
       { href: "/admin/billing", label: "Billing", icon: CreditCard },
       { href: "/admin", label: "Settings", icon: Settings },
     ],
