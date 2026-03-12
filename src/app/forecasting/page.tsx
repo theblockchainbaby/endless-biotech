@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
+import { Download } from "lucide-react";
 import { generateForecast, type ForecastPoint } from "@/lib/forecasting";
 import { STAGE_LABELS } from "@/lib/constants";
 import type { DashboardStats } from "@/lib/types";
@@ -58,12 +60,35 @@ export default function ForecastingPage() {
 
   const finalPoint = forecast[forecast.length - 1];
 
+  function handleExportCSV() {
+    if (forecast.length === 0) return;
+    const header = "Week,Date,Initiation,Multiplication,Rooting,Acclimation,Hardening,Total";
+    const rows = forecast.map((p) =>
+      [p.week, p.date, p.initiation, p.multiplication, p.rooting, p.acclimation, p.hardening, p.total].join(",")
+    );
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `forecast-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Production Forecasting"
-        description="Project vessel counts by stage over time"
-      />
+      <div className="flex items-center justify-between">
+        <PageHeader
+          title="Production Forecasting"
+          description="Project vessel counts by stage over time"
+        />
+        {forecast.length > 0 && (
+          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+            <Download className="size-4 mr-1.5" /> Export CSV
+          </Button>
+        )}
+      </div>
 
       {/* Parameters */}
       <Card>

@@ -9,14 +9,18 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, AlertTriangle, CheckCircle, Clock, TrendingDown } from "lucide-react";
+import { Plus, AlertTriangle, CheckCircle, Clock, TrendingDown, Download, CalendarDays, ArrowRight, Truck, FlaskConical } from "lucide-react";
 import {
   generateDemandProjections,
   generateLongRangeProjection,
+  generateProductionSchedule,
+  exportDemandCSV,
   getDefaultStages,
   type DemandOrder,
   type DemandSummary,
+  type ScheduleWeek,
 } from "@/lib/demand-forecast";
+import { STAGE_LABELS } from "@/lib/constants";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend,
@@ -55,13 +59,26 @@ const PRIORITY_COLORS: Record<string, string> = {
   urgent: "bg-red-500/10 text-red-600",
 };
 
+const ACTION_STYLES: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
+  initiate: { icon: <FlaskConical className="size-3.5" />, color: "bg-blue-500/10 text-blue-700", label: "Initiate" },
+  subculture: { icon: <FlaskConical className="size-3.5" />, color: "bg-green-500/10 text-green-700", label: "Subculture" },
+  transfer: { icon: <ArrowRight className="size-3.5" />, color: "bg-purple-500/10 text-purple-700", label: "Transfer" },
+  ship: { icon: <Truck className="size-3.5" />, color: "bg-amber-500/10 text-amber-700", label: "Ship" },
+};
+
+type ViewTab = "projections" | "schedule";
+
 export default function DemandPlanningPage() {
   const [orders, setOrders] = useState<SalesOrder[]>([]);
   const [cultivars, setCultivars] = useState<Cultivar[]>([]);
   const [summary, setSummary] = useState<DemandSummary | null>(null);
+  const [schedule, setSchedule] = useState<ScheduleWeek[]>([]);
   const [longRange, setLongRange] = useState<{ week: number; date: string; cumulativeOutput: number; byStage: Record<string, number> }[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<ViewTab>("projections");
+  const [demandOrders, setDemandOrders] = useState<DemandOrder[]>([]);
+  const [pipelineData, setPipelineData] = useState<Record<string, number>>({});
   const [form, setForm] = useState({
     orderNumber: "",
     customerName: "",
@@ -74,6 +91,7 @@ export default function DemandPlanningPage() {
   });
 
   const loadData = useCallback(async () => {
+    try {
     const [ordersRes, cultivarRes, statsRes] = await Promise.all([
       fetch("/api/sales-orders").then((r) => r.json()),
       fetch("/api/cultivars").then((r) => r.json()),
@@ -92,9 +110,10 @@ export default function DemandPlanningPage() {
         pipelineByCultivar[v.cultivarId] = (pipelineByCultivar[v.cultivarId] || 0) + v.count;
       });
     }
+    setPipelineData(pipelineByCultivar);
 
     // Generate demand projections
-    const demandOrders: DemandOrder[] = orderList
+    const dOrders: DemandOrder[] = orderList
       .filter((o) => o.status !== "fulfilled" && o.status !== "cancelled")
       .map((o) => ({
         id: o.id,
@@ -106,10 +125,15 @@ export default function DemandPlanningPage() {
         dueDate: o.dueDate,
         priority: o.priority,
       }));
+    setDemandOrders(dOrders);
 
-    if (demandOrders.length > 0) {
-      const projections = generateDemandProjections(demandOrders, pipelineByCultivar);
+    if (dOrders.length > 0) {
+      const projections = generateDemandProjections(dOrders, pipelineByCultivar);
       setSummary(projections);
+
+      // Generate production schedule
+      const sched = generateProductionSchedule(dOrders, pipelineByCultivar);
+      setSchedule(sched);
     }
 
     // Generate 10-month long-range projection
@@ -120,6 +144,10 @@ export default function DemandPlanningPage() {
     }
 
     setLoading(false);
+    } catch (err) {
+      console.error("Failed to load demand planning data:", err);
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -139,6 +167,18 @@ export default function DemandPlanningPage() {
       setForm({ orderNumber: "", customerName: "", cultivarId: "", quantity: "", unitType: "plugs", dueDate: "", priority: "normal", notes: "" });
       loadData();
     }
+  }
+
+  function handleExportCSV() {
+    if (!summary) return;
+    const csv = exportDemandCSV(summary.projections, schedule);
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `production-schedule-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -236,153 +276,232 @@ export default function DemandPlanningPage() {
         </Card>
       )}
 
-      {/* Orders + New Order */}
+      {/* Tab bar + actions */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Sales Orders</h2>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="size-4 mr-2" /> New Order</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create Sales Order</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3 pt-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Order #</Label>
-                  <Input value={form.orderNumber} onChange={(e) => setForm({ ...form, orderNumber: e.target.value })} className="mt-1" />
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+          <button
+            onClick={() => setActiveTab("projections")}
+            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${activeTab === "projections" ? "bg-background shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Order Projections
+          </button>
+          <button
+            onClick={() => setActiveTab("schedule")}
+            className={`px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-1.5 ${activeTab === "schedule" ? "bg-background shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <CalendarDays className="size-3.5" />
+            Production Schedule
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          {summary && (
+            <Button variant="outline" size="sm" onClick={handleExportCSV}>
+              <Download className="size-4 mr-1.5" /> Export CSV
+            </Button>
+          )}
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="size-4 mr-2" /> New Order</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Sales Order</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3 pt-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Order #</Label>
+                    <Input value={form.orderNumber} onChange={(e) => setForm({ ...form, orderNumber: e.target.value })} className="mt-1" />
+                  </div>
+                  <div>
+                    <Label>Customer</Label>
+                    <Input value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} className="mt-1" />
+                  </div>
                 </div>
                 <div>
-                  <Label>Customer</Label>
-                  <Input value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} className="mt-1" />
-                </div>
-              </div>
-              <div>
-                <Label>Cultivar</Label>
-                <Select value={form.cultivarId} onValueChange={(v) => setForm({ ...form, cultivarId: v })}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Select cultivar" /></SelectTrigger>
-                  <SelectContent>
-                    {cultivars.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Quantity</Label>
-                  <Input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} className="mt-1" />
-                </div>
-                <div>
-                  <Label>Unit Type</Label>
-                  <Select value={form.unitType} onValueChange={(v) => setForm({ ...form, unitType: v })}>
-                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <Label>Cultivar</Label>
+                  <Select value={form.cultivarId} onValueChange={(v) => setForm({ ...form, cultivarId: v })}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Select cultivar" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="plugs">Plugs</SelectItem>
-                      <SelectItem value="liners">Liners</SelectItem>
-                      <SelectItem value="rooted_cuttings">Rooted Cuttings</SelectItem>
-                      <SelectItem value="tissue_culture_jars">TC Jars</SelectItem>
+                      {cultivars.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Due Date</Label>
-                  <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} className="mt-1" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Quantity</Label>
+                    <Input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} className="mt-1" />
+                  </div>
+                  <div>
+                    <Label>Unit Type</Label>
+                    <Select value={form.unitType} onValueChange={(v) => setForm({ ...form, unitType: v })}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="plugs">Plugs</SelectItem>
+                        <SelectItem value="liners">Liners</SelectItem>
+                        <SelectItem value="rooted_cuttings">Rooted Cuttings</SelectItem>
+                        <SelectItem value="tissue_culture_jars">TC Jars</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Due Date</Label>
+                    <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} className="mt-1" />
+                  </div>
+                  <div>
+                    <Label>Priority</Label>
+                    <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="normal">Normal</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="urgent">Urgent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div>
-                  <Label>Priority</Label>
-                  <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
-                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="normal">Normal</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Notes</Label>
+                  <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="mt-1" />
                 </div>
+                <Button
+                  onClick={handleCreate}
+                  className="w-full"
+                  disabled={!form.orderNumber || !form.customerName || !form.cultivarId || !form.quantity || !form.dueDate}
+                >
+                  Create Order
+                </Button>
               </div>
-              <div>
-                <Label>Notes</Label>
-                <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="mt-1" />
-              </div>
-              <Button
-                onClick={handleCreate}
-                className="w-full"
-                disabled={!form.orderNumber || !form.customerName || !form.cultivarId || !form.quantity || !form.dueDate}
-              >
-                Create Order
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      {/* Order projections */}
+      {/* Tab content */}
       {loading ? (
         <Card><CardContent className="py-8 text-center text-muted-foreground">Loading...</CardContent></Card>
-      ) : summary && summary.projections.length > 0 ? (
-        <div className="space-y-3">
-          {summary.projections.map((p) => (
-            <Card key={p.order.id}>
-              <CardContent className="pt-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    {STATUS_ICONS[p.status]}
-                    <div>
-                      <h3 className="font-semibold">
-                        {p.order.customerName} - {p.order.cultivarName}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {p.order.quantity.toLocaleString()} {p.order.unitType} due {new Date(p.order.dueDate).toLocaleDateString()}
-                        {" "}({p.weeksUntilDue} weeks)
-                      </p>
+      ) : activeTab === "projections" ? (
+        /* Order projections view */
+        summary && summary.projections.length > 0 ? (
+          <div className="space-y-3">
+            {summary.projections.map((p) => (
+              <Card key={p.order.id}>
+                <CardContent className="pt-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      {STATUS_ICONS[p.status]}
+                      <div>
+                        <h3 className="font-semibold">
+                          {p.order.customerName} - {p.order.cultivarName}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {p.order.quantity.toLocaleString()} {p.order.unitType} due {new Date(p.order.dueDate).toLocaleDateString()}
+                          {" "}({p.weeksUntilDue} weeks)
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className={PRIORITY_COLORS[p.order.priority]}>{p.order.priority}</Badge>
+                      <Badge variant={p.gap > 0 ? "destructive" : "secondary"}>
+                        {p.gap > 0 ? `Gap: ${p.gap}` : "On Track"}
+                      </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className={PRIORITY_COLORS[p.order.priority]}>{p.order.priority}</Badge>
-                    <Badge variant={p.gap > 0 ? "destructive" : "secondary"}>
-                      {p.gap > 0 ? `Gap: ${p.gap}` : "On Track"}
+
+                  <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                    <div className="bg-muted rounded px-2 py-1">
+                      <span className="text-muted-foreground">In Pipeline:</span>{" "}
+                      <span className="font-mono">{p.currentInPipeline}</span>
+                    </div>
+                    <div className="bg-muted rounded px-2 py-1">
+                      <span className="text-muted-foreground">Need to Initiate:</span>{" "}
+                      <span className="font-mono">{p.requiredByStage["initiation"] || 0}</span>
+                    </div>
+                    <div className="bg-muted rounded px-2 py-1">
+                      <span className="text-muted-foreground">Initiation Deadline:</span>{" "}
+                      <span className="font-mono">{p.initiationDeadline}</span>
+                    </div>
+                    <div className="bg-muted rounded px-2 py-1">
+                      <span className="text-muted-foreground">Status:</span>{" "}
+                      <span className={`font-medium ${p.status === "behind" ? "text-red-500" : p.status === "at_risk" ? "text-amber-500" : "text-green-500"}`}>
+                        {p.status.replace("_", " ")}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : orders.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <TrendingDown className="size-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium">No Sales Orders</h3>
+              <p className="text-muted-foreground mt-1">Create a sales order to see demand projections and production requirements.</p>
+            </CardContent>
+          </Card>
+        ) : null
+      ) : (
+        /* Production Schedule view */
+        schedule.length > 0 ? (
+          <div className="space-y-3">
+            {schedule.map((week) => (
+              <Card key={week.week}>
+                <CardContent className="pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <CalendarDays className="size-4 text-muted-foreground" />
+                      <h3 className="font-semibold">Week {week.week}</h3>
+                      <span className="text-sm text-muted-foreground">{week.date}</span>
+                    </div>
+                    <Badge variant="outline" className="font-mono">
+                      {week.totalVessels.toLocaleString()} vessels
                     </Badge>
                   </div>
-                </div>
-
-                <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                  <div className="bg-muted rounded px-2 py-1">
-                    <span className="text-muted-foreground">In Pipeline:</span>{" "}
-                    <span className="font-mono">{p.currentInPipeline}</span>
+                  <div className="space-y-2">
+                    {week.actions.map((action, i) => {
+                      const style = ACTION_STYLES[action.type];
+                      return (
+                        <div key={i} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${style.color}`}>
+                          {style.icon}
+                          <div className="flex-1 text-sm">
+                            <span className="font-medium">{style.label}</span>
+                            {" "}
+                            <span className="font-mono">{action.quantity.toLocaleString()}</span>
+                            {" "}
+                            <span>{action.cultivarName}</span>
+                            {action.fromStage && action.toStage && action.fromStage !== action.toStage && (
+                              <span className="text-xs ml-1">
+                                ({STAGE_LABELS[action.fromStage] || action.fromStage} → {STAGE_LABELS[action.toStage] || action.toStage})
+                              </span>
+                            )}
+                            {action.customerName && (
+                              <span className="text-xs ml-1">for {action.customerName}</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="bg-muted rounded px-2 py-1">
-                    <span className="text-muted-foreground">Need to Initiate:</span>{" "}
-                    <span className="font-mono">{p.requiredByStage["initiation"] || 0}</span>
-                  </div>
-                  <div className="bg-muted rounded px-2 py-1">
-                    <span className="text-muted-foreground">Initiation Deadline:</span>{" "}
-                    <span className="font-mono">{p.initiationDeadline}</span>
-                  </div>
-                  <div className="bg-muted rounded px-2 py-1">
-                    <span className="text-muted-foreground">Status:</span>{" "}
-                    <span className={`font-medium ${p.status === "behind" ? "text-red-500" : p.status === "at_risk" ? "text-amber-500" : "text-green-500"}`}>
-                      {p.status.replace("_", " ")}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : orders.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <TrendingDown className="size-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-medium">No Sales Orders</h3>
-            <p className="text-muted-foreground mt-1">Create a sales order to see demand projections and production requirements.</p>
-          </CardContent>
-        </Card>
-      ) : null}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <CalendarDays className="size-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium">No Schedule Generated</h3>
+              <p className="text-muted-foreground mt-1">Add sales orders with production gaps to generate a weekly production schedule.</p>
+            </CardContent>
+          </Card>
+        )
+      )}
     </div>
   );
 }

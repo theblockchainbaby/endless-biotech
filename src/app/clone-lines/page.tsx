@@ -59,7 +59,7 @@ export default function CloneLinesPage() {
       setCloneLines(lines);
       setCultivars(Array.isArray(cultivarData) ? cultivarData : cultivarData.cultivars || []);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, []);
 
   async function handleCreate() {

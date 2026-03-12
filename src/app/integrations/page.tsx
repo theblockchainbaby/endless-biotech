@@ -55,21 +55,24 @@ export default function IntegrationsPage() {
   }, []);
 
   async function handleCreate() {
-    const res = await fetch("/api/api-keys", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: form.name,
-        permissions: form.permissions,
-        expiresInDays: form.expiresInDays ? parseInt(form.expiresInDays) : null,
-      }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setNewKey(data.key);
-      // Refresh list
-      const updated = await fetch("/api/api-keys").then((r) => r.json());
-      setApiKeys(updated);
+    try {
+      const res = await fetch("/api/api-keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          permissions: form.permissions,
+          expiresInDays: form.expiresInDays ? parseInt(form.expiresInDays) : null,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNewKey(data.key);
+        const updated = await fetch("/api/api-keys").then((r) => r.json());
+        setApiKeys(updated);
+      }
+    } catch (err) {
+      console.error("Failed to create API key:", err);
     }
   }
 

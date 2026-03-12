@@ -49,6 +49,24 @@ export interface WeeklyInitiation {
   forOrders: string[];
 }
 
+export interface ScheduleWeek {
+  week: number;
+  date: string;
+  actions: ScheduleAction[];
+  totalVessels: number;
+}
+
+export interface ScheduleAction {
+  type: "initiate" | "subculture" | "transfer" | "ship";
+  cultivarName: string;
+  cultivarId: string;
+  quantity: number;
+  fromStage?: string;
+  toStage?: string;
+  orderNumber?: string;
+  customerName?: string;
+}
+
 // Default stage pipeline for ornamental TC
 const DEFAULT_STAGES: StageYield[] = [
   { stage: "initiation", durationWeeks: 4, multiplicationRate: 1, survivalRate: 0.85 },
@@ -240,4 +258,199 @@ export function generateLongRangeProjection(
   }
 
   return points;
+}
+
+/**
+ * Generate a weekly production schedule from demand projections.
+ * This replaces "Lab Planner" — shows week-by-week what to initiate,
+ * subculture, transfer between stages, and ship.
+ */
+export function generateProductionSchedule(
+  orders: DemandOrder[],
+  pipelineByCultivar: Record<string, number>,
+  stages: StageYield[] = DEFAULT_STAGES,
+  weeksOut: number = 36
+): ScheduleWeek[] {
+  const now = new Date();
+  const totalPipelineWeeks = getTotalPipelineWeeks(stages);
+  const schedule: ScheduleWeek[] = [];
+
+  // Build per-order timeline: when to initiate, when each stage transition happens, when to ship
+  interface OrderTimeline {
+    order: DemandOrder;
+    initiateWeek: number;
+    stageTransitions: { week: number; fromStage: string; toStage: string; quantity: number }[];
+    shipWeek: number;
+    initiationQuantity: number;
+  }
+
+  const timelines: OrderTimeline[] = [];
+
+  for (const order of orders) {
+    const dueDate = new Date(order.dueDate);
+    const shipWeek = Math.max(0, Math.round((dueDate.getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000)));
+    if (shipWeek > weeksOut) continue;
+
+    const requirements = calculateBackwardRequirements(order.quantity, stages);
+    const currentPipeline = pipelineByCultivar[order.cultivarId] || 0;
+    const initiationNeeded = Math.max(0, (requirements["initiation"] || 0) - currentPipeline);
+
+    if (initiationNeeded === 0 && currentPipeline >= order.quantity) continue;
+
+    // Calculate when each stage transition happens (working forward from initiation)
+    const initiateWeek = Math.max(0, shipWeek - totalPipelineWeeks);
+    const transitions: { week: number; fromStage: string; toStage: string; quantity: number }[] = [];
+    let currentWeek = initiateWeek;
+    let currentQty = initiationNeeded > 0 ? initiationNeeded : requirements["initiation"] || 0;
+
+    for (let i = 0; i < stages.length - 1; i++) {
+      currentWeek += stages[i].durationWeeks;
+      const surviving = Math.round(currentQty * stages[i].survivalRate * stages[i].multiplicationRate);
+      transitions.push({
+        week: currentWeek,
+        fromStage: stages[i].stage,
+        toStage: stages[i + 1].stage,
+        quantity: surviving,
+      });
+      currentQty = surviving;
+    }
+
+    timelines.push({
+      order,
+      initiateWeek,
+      stageTransitions: transitions,
+      shipWeek,
+      initiationQuantity: initiationNeeded > 0 ? initiationNeeded : 0,
+    });
+  }
+
+  // Build week-by-week schedule
+  for (let week = 0; week <= weeksOut; week++) {
+    const date = new Date(now);
+    date.setDate(date.getDate() + week * 7);
+    const actions: ScheduleAction[] = [];
+
+    for (const tl of timelines) {
+      // Initiation actions
+      if (tl.initiateWeek === week && tl.initiationQuantity > 0) {
+        actions.push({
+          type: "initiate",
+          cultivarName: tl.order.cultivarName,
+          cultivarId: tl.order.cultivarId,
+          quantity: tl.initiationQuantity,
+          toStage: "initiation",
+          orderNumber: tl.order.id,
+          customerName: tl.order.customerName,
+        });
+      }
+
+      // Stage transfer actions
+      for (const tr of tl.stageTransitions) {
+        if (tr.week === week) {
+          actions.push({
+            type: "transfer",
+            cultivarName: tl.order.cultivarName,
+            cultivarId: tl.order.cultivarId,
+            quantity: tr.quantity,
+            fromStage: tr.fromStage,
+            toStage: tr.toStage,
+          });
+        }
+      }
+
+      // Subculture (multiplication) actions — during multiplication stage
+      const multStageIndex = stages.findIndex((s) => s.stage === "multiplication");
+      if (multStageIndex >= 0) {
+        const multStart = tl.initiateWeek + stages[0].durationWeeks;
+        const multEnd = multStart + stages[multStageIndex].durationWeeks;
+        const subcultureInterval = 2; // every 2 weeks
+        if (week > multStart && week < multEnd && (week - multStart) % subcultureInterval === 0) {
+          const estQty = Math.round(tl.initiationQuantity * stages[0].survivalRate);
+          if (estQty > 0) {
+            actions.push({
+              type: "subculture",
+              cultivarName: tl.order.cultivarName,
+              cultivarId: tl.order.cultivarId,
+              quantity: estQty,
+              fromStage: "multiplication",
+              toStage: "multiplication",
+            });
+          }
+        }
+      }
+
+      // Ship actions
+      if (tl.shipWeek === week) {
+        actions.push({
+          type: "ship",
+          cultivarName: tl.order.cultivarName,
+          cultivarId: tl.order.cultivarId,
+          quantity: tl.order.quantity,
+          orderNumber: tl.order.id,
+          customerName: tl.order.customerName,
+        });
+      }
+    }
+
+    if (actions.length > 0) {
+      schedule.push({
+        week,
+        date: date.toISOString().split("T")[0],
+        actions,
+        totalVessels: actions.reduce((sum, a) => sum + a.quantity, 0),
+      });
+    }
+  }
+
+  return schedule;
+}
+
+/**
+ * Export demand data as CSV string
+ */
+export function exportDemandCSV(
+  projections: DemandProjection[],
+  schedule: ScheduleWeek[]
+): string {
+  const lines: string[] = [];
+
+  // Section 1: Order Projections
+  lines.push("=== ORDER PROJECTIONS ===");
+  lines.push("Customer,Cultivar,Quantity,Unit Type,Due Date,Weeks Until Due,In Pipeline,Gap,Status,Initiation Deadline");
+  for (const p of projections) {
+    lines.push([
+      p.order.customerName,
+      p.order.cultivarName,
+      p.order.quantity,
+      p.order.unitType,
+      p.order.dueDate,
+      p.weeksUntilDue,
+      p.currentInPipeline,
+      p.gap,
+      p.status,
+      p.initiationDeadline,
+    ].join(","));
+  }
+
+  lines.push("");
+
+  // Section 2: Production Schedule
+  lines.push("=== PRODUCTION SCHEDULE ===");
+  lines.push("Week,Date,Action,Cultivar,Quantity,From Stage,To Stage,Customer");
+  for (const week of schedule) {
+    for (const action of week.actions) {
+      lines.push([
+        week.week,
+        week.date,
+        action.type,
+        action.cultivarName,
+        action.quantity,
+        action.fromStage || "",
+        action.toStage || "",
+        action.customerName || "",
+      ].join(","));
+    }
+  }
+
+  return lines.join("\n");
 }

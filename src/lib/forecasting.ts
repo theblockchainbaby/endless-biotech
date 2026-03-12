@@ -59,8 +59,9 @@ export function generateForecast(params: ForecastParams): ForecastPoint[] {
       }
 
       // Apply stage advancement and loss
-      const advances = stages.map((_, i) => state[i] * advanceRate * (1 / subcultureIntervalWeeks));
-      const losses = stages.map((_, i) => state[i] * lossRate * (1 / subcultureIntervalWeeks));
+      const interval = Math.max(1, subcultureIntervalWeeks);
+      const advances = stages.map((_, i) => state[i] * advanceRate * (1 / interval));
+      const losses = stages.map((_, i) => state[i] * lossRate * (1 / interval));
 
       // Move vessels forward
       for (let i = stages.length - 1; i >= 0; i--) {
