@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge, HealthBadge, StageBadge } from "@/components/status-badge";
 import { VESSEL_STATUS_LABELS, HEALTH_STATUS_LABELS, STAGE_LABELS } from "@/lib/constants";
 import { toast } from "sonner";
+import { Clock } from "lucide-react";
 import type { Cultivar, Vessel } from "@/lib/types";
 
 export default function ScanPage() {
@@ -32,12 +33,27 @@ export default function ScanPage() {
   const [stage, setStage] = useState("initiation");
   const [notes, setNotes] = useState("");
 
+  const [recentScans, setRecentScans] = useState<string[]>([]);
+
   useEffect(() => {
     fetch("/api/cultivars").then((r) => r.json()).then(setCultivars);
+    try {
+      const saved = localStorage.getItem("vitros_recent_scans");
+      if (saved) setRecentScans(JSON.parse(saved));
+    } catch { /* ignore */ }
   }, []);
+
+  const addToRecent = (barcode: string) => {
+    setRecentScans((prev) => {
+      const updated = [barcode, ...prev.filter((b) => b !== barcode)].slice(0, 8);
+      localStorage.setItem("vitros_recent_scans", JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const handleScan = useCallback(async (barcode: string) => {
     setScannedBarcode(barcode);
+    addToRecent(barcode);
     setLoading(true);
     try {
       const res = await fetch(`/api/vessels/barcode?code=${encodeURIComponent(barcode)}`);
@@ -151,11 +167,37 @@ export default function ScanPage() {
       <PageHeader title="Scan Vessel" description="Scan a barcode to create or update a vessel" />
 
       {!scannedBarcode ? (
-        <Card>
-          <CardContent className="pt-6">
-            <BarcodeScanner onScan={handleScan} />
-          </CardContent>
-        </Card>
+        <>
+          <Card>
+            <CardContent className="pt-6">
+              <BarcodeScanner onScan={handleScan} />
+            </CardContent>
+          </Card>
+          {recentScans.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground">
+                  <Clock className="size-3.5" /> Recent Scans
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {recentScans.map((barcode) => (
+                    <Button
+                      key={barcode}
+                      variant="outline"
+                      size="sm"
+                      className="font-mono text-xs"
+                      onClick={() => handleScan(barcode)}
+                    >
+                      {barcode}
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
       ) : loading ? (
         <Card>
           <CardContent className="pt-6 text-center">

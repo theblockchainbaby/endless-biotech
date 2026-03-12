@@ -12,6 +12,9 @@ import { exportToCSV } from "@/lib/csv-export";
 import { formatDistanceToNow } from "date-fns";
 import type { DashboardStats } from "@/lib/types";
 import {
+  ScanBarcode, Layers, CalendarClock, ShoppingCart,
+} from "lucide-react";
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
   AreaChart, Area, Legend,
@@ -95,6 +98,46 @@ export default function Dashboard() {
           alert={(analytics?.contaminationRate ?? 0) > 5}
         />
         <KPICard title="Cultivars" value={stats.vesselsByCultivar.length} />
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Button variant="outline" className="h-auto py-3 justify-start" asChild>
+          <Link href="/scan">
+            <ScanBarcode className="size-4 mr-2 text-blue-500" />
+            <div className="text-left">
+              <p className="text-sm font-medium">Scan Vessel</p>
+              <p className="text-xs text-muted-foreground">Create or update</p>
+            </div>
+          </Link>
+        </Button>
+        <Button variant="outline" className="h-auto py-3 justify-start" asChild>
+          <Link href="/batch">
+            <Layers className="size-4 mr-2 text-green-500" />
+            <div className="text-left">
+              <p className="text-sm font-medium">Batch Ops</p>
+              <p className="text-xs text-muted-foreground">Advance, move, check</p>
+            </div>
+          </Link>
+        </Button>
+        <Button variant="outline" className="h-auto py-3 justify-start" asChild>
+          <Link href="/tasks">
+            <CalendarClock className="size-4 mr-2 text-amber-500" />
+            <div className="text-left">
+              <p className="text-sm font-medium">Daily Tasks</p>
+              <p className="text-xs text-muted-foreground">Morning briefing</p>
+            </div>
+          </Link>
+        </Button>
+        <Button variant="outline" className="h-auto py-3 justify-start" asChild>
+          <Link href="/demand-planning">
+            <ShoppingCart className="size-4 mr-2 text-purple-500" />
+            <div className="text-left">
+              <p className="text-sm font-medium">Demand Planning</p>
+              <p className="text-xs text-muted-foreground">Orders & schedule</p>
+            </div>
+          </Link>
+        </Button>
       </div>
 
       {/* Subculture reminders */}

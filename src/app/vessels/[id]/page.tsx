@@ -509,7 +509,11 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
         <CardContent>
           <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
             <span className="text-muted-foreground">Barcode</span>
-            <span className="font-mono">{vessel.barcode}</span>
+            <span
+              className="font-mono cursor-pointer hover:text-primary transition-colors"
+              title="Click to copy"
+              onClick={() => { navigator.clipboard.writeText(vessel.barcode); toast.success("Barcode copied"); }}
+            >{vessel.barcode}</span>
             <span className="text-muted-foreground">Cultivar</span>
             <span>{vessel.cultivar?.name || "—"}</span>
             <span className="text-muted-foreground">Species</span>
