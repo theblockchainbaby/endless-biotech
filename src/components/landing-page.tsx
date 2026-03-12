@@ -197,7 +197,7 @@ export function LandingPage() {
             <span className="inline">
               Management,{" "}
               <WordRotate
-                words={["Modernized", "Automated", "Simplified", "Streamlined"]}
+                words={["Evolved", "Automated", "Simplified", "Refined"]}
                 className="text-primary inline"
                 duration={2500}
               />
@@ -384,33 +384,24 @@ export function LandingPage() {
             className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto"
           >
             {PRICING.map((tier) => (
-              <motion.div key={tier.name} variants={fadeUp} transition={{ duration: 0.5 }}>
+              <motion.div key={tier.name} variants={fadeUp} transition={{ duration: 0.5 }} className="h-full">
                 <MagicCard className={`h-full relative ${tier.popular ? "shadow-lg" : ""}`}>
                   {tier.popular && <BorderBeam size={200} duration={8} />}
-                  <div className="p-8">
-                    {tier.popular && (
-                      <div className="flex justify-center mb-4">
+                  <div className="p-8 flex flex-col h-full">
+                    <div className="flex justify-center mb-4 h-6">
+                      {tier.popular && (
                         <Badge className="bg-primary text-primary-foreground">Most Popular</Badge>
-                      </div>
-                    )}
-                    <h3 className="text-xl font-bold mb-1">{tier.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-4">{tier.description}</p>
-                    <div className="mb-6">
+                      )}
+                    </div>
+                    <h3 className="text-2xl font-bold mb-1 text-center">{tier.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-4 text-center">{tier.description}</p>
+                    <div className="mb-6 text-center">
                       <span className="text-4xl font-bold">
                         $<NumberTicker value={tier.price} delay={0.3} />
                       </span>
                       <span className="text-muted-foreground">/mo</span>
                     </div>
-                    <Link href={`/signup?plan=${tier.name.toLowerCase()}`}>
-                      {tier.popular ? (
-                        <ShimmerButton className="w-full mb-6">Get Started</ShimmerButton>
-                      ) : (
-                        <Button className="w-full mb-6" variant="outline">
-                          Get Started
-                        </Button>
-                      )}
-                    </Link>
-                    <ul className="space-y-3">
+                    <ul className="space-y-3 flex-1">
                       {tier.features.map((feature) => (
                         <li key={feature} className="flex items-start gap-2 text-sm">
                           <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
@@ -418,6 +409,17 @@ export function LandingPage() {
                         </li>
                       ))}
                     </ul>
+                    <div className="mt-auto pt-6">
+                      <Link href={`/signup?plan=${tier.name.toLowerCase()}`}>
+                        {tier.popular ? (
+                          <ShimmerButton className="w-full">Get Started</ShimmerButton>
+                        ) : (
+                          <Button className="w-full" variant="outline">
+                            Get Started
+                          </Button>
+                        )}
+                      </Link>
+                    </div>
                   </div>
                 </MagicCard>
               </motion.div>
@@ -435,13 +437,13 @@ export function LandingPage() {
           >
             <div className="relative rounded-xl border-2 border-primary/30 bg-primary/5 p-6 text-center">
               <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4">
-                Limited — 3 spots remaining
+                Limited — 2 spots remaining
               </Badge>
               <h3 className="text-xl font-bold mt-1 mb-2">Founding Partner Program</h3>
               <p className="text-muted-foreground text-sm mb-3">
                 Be one of our first 3 customers and lock in{" "}
-                <span className="font-bold text-foreground">$99/mo for your first year</span>{" "}
-                (80% off any plan). In exchange, we ask for a short case study and testimonial.
+                <span className="font-bold text-foreground">$99/mo for the first 3 months, no matter which plan you choose.</span>{" "}
+                In exchange, we ask for a short case study and testimonial.
               </p>
               <div className="flex justify-center">
                 <Link href="/signup?plan=starter&founding=true">
@@ -471,7 +473,7 @@ export function LandingPage() {
           <motion.p variants={fadeUp} transition={{ duration: 0.5, delay: 0.1 }} className="text-lg text-muted-foreground mb-8">
             Join labs already using VitrOS to track vessels, prevent contamination, and scale production.
           </motion.p>
-          <motion.div variants={fadeUp} transition={{ duration: 0.5, delay: 0.2 }}>
+          <motion.div variants={fadeUp} transition={{ duration: 0.5, delay: 0.2 }} className="flex justify-center">
             <Link href="/signup">
               <ShimmerButton>
                 Start Free <ArrowRight className="h-4 w-4" />
@@ -488,7 +490,7 @@ export function LandingPage() {
             <Image src="/logo.png" alt="VitrOS" width={100} height={67} className="h-8 w-auto" />
           </div>
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} VitrOS Labs. All rights reserved.
+            &copy; {new Date().getFullYear()} VitrOS Labs. Powered by Caipher. All rights reserved.
           </p>
         </div>
       </footer>
