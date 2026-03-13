@@ -20,13 +20,40 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VitrOS - Tissue Culture Management",
-  description: "Enterprise tissue culture vessel tracking and lab management platform",
+  metadataBase: new URL("https://vitroslabs.com"),
+  title: "VitrOS — Lab Management Software for Tissue Culture Labs",
+  description:
+    "VitrOS is lab management software purpose-built for tissue culture. Track vessels, manage lab inventory, streamline workflows, and monitor contamination — all in one platform.",
+  keywords: [
+    "lab management software",
+    "tissue culture lab",
+    "lab inventory software",
+    "lab workflow software",
+    "tissue culture tracking",
+    "vessel tracking",
+    "tissue culture management",
+    "plant propagation software",
+    "lab contamination tracking",
+  ],
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "VitrOS",
+  },
+  openGraph: {
+    title: "VitrOS — Lab Management Software for Tissue Culture Labs",
+    description:
+      "Purpose-built lab management software for tissue culture. Track every vessel, manage inventory, and streamline your lab workflow.",
+    type: "website",
+    siteName: "VitrOS",
+    url: "https://vitroslabs.com",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "VitrOS — Lab Management Software for Tissue Culture Labs",
+    description:
+      "Purpose-built lab management software for tissue culture. Track every vessel, manage inventory, and streamline your lab workflow.",
   },
   other: {
     "mobile-web-app-capable": "yes",

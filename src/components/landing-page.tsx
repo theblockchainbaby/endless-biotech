@@ -193,7 +193,7 @@ export function LandingPage() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.1]"
           >
-            Tissue Culture{" "}
+            Tissue Culture Lab{" "}
             <span className="inline">
               Management,{" "}
               <WordRotate
@@ -208,9 +208,9 @@ export function LandingPage() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10"
           >
-            Track every vessel, prevent contamination, and scale your lab with
-            confidence. VitrOS replaces paper logs and spreadsheets with a
-            platform built for the way you work.
+            The lab management software built for tissue culture. Track every
+            vessel, manage your lab inventory, and streamline workflows —
+            VitrOS replaces paper logs and spreadsheets so you can scale with confidence.
           </motion.p>
           <motion.div
             variants={fadeUp}
