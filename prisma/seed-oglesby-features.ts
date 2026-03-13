@@ -206,10 +206,84 @@ async function main() {
   }
   console.log(`✓ ${orders.length} sales orders created`);
 
+  // ── Lineage Chains ──
+  // Create realistic parent→child relationships for a few cultivars
+  // This makes the family tree feature visible in demos
+  const lineageCultivars = ["SPA-SEN", "ANT-TKP", "SCH-AMA"];
+  let lineageCount = 0;
+
+  for (const code of lineageCultivars) {
+    const cultivar = cultivars.find(c => c.code === code);
+    if (!cultivar) continue;
+
+    // Get vessels in multiplication stage (these are the ones that would have been multiplied)
+    const multVessels = await prisma.vessel.findMany({
+      where: {
+        cultivarId: cultivar.id,
+        organizationId: org.id,
+        stage: "multiplication",
+        parentVesselId: null,
+      },
+      take: 3,
+    });
+
+    for (const parent of multVessels) {
+      // Find unlinked vessels in later stages to use as "children"
+      const children = await prisma.vessel.findMany({
+        where: {
+          cultivarId: cultivar.id,
+          organizationId: org.id,
+          parentVesselId: null,
+          id: { not: parent.id },
+          stage: { in: ["rooting", "acclimation", "hardening"] },
+        },
+        take: 3,
+      });
+
+      for (const child of children) {
+        await prisma.vessel.update({
+          where: { id: child.id },
+          data: {
+            parentVesselId: parent.id,
+            generation: parent.generation + 1,
+          },
+        });
+        lineageCount++;
+
+        // Give some children their own children (3rd generation)
+        if (Math.random() > 0.5) {
+          const grandchildren = await prisma.vessel.findMany({
+            where: {
+              cultivarId: cultivar.id,
+              organizationId: org.id,
+              parentVesselId: null,
+              id: { notIn: [parent.id, child.id] },
+              stage: { in: ["acclimation", "hardening"] },
+            },
+            take: 2,
+          });
+          for (const gc of grandchildren) {
+            await prisma.vessel.update({
+              where: { id: gc.id },
+              data: {
+                parentVesselId: child.id,
+                generation: parent.generation + 2,
+              },
+            });
+            lineageCount++;
+          }
+        }
+      }
+    }
+  }
+  console.log(`✓ ${lineageCount} lineage relationships created`);
+
   // Verify counts
   const clCount = await prisma.cloneLine.count({ where: { organizationId: org.id } });
   const soCount = await prisma.salesOrder.count({ where: { organizationId: org.id } });
   const assignedVessels = await prisma.vessel.count({ where: { organizationId: org.id, cloneLineId: { not: null } } });
+
+  const linkedVessels = await prisma.vessel.count({ where: { organizationId: org.id, parentVesselId: { not: null } } });
 
   console.log(`\n═══════════════════════════════════════`);
   console.log(`Oglesby Demo — Features Seeded`);
@@ -217,6 +291,7 @@ async function main() {
   console.log(`  Clone Lines: ${clCount}`);
   console.log(`  Vessels Assigned to Lines: ${assignedVessels}`);
   console.log(`  Sales Orders: ${soCount}`);
+  console.log(`  Lineage Links: ${linkedVessels}`);
   console.log(`  Login: demo@oglesby.vitros.app / demo1234`);
   console.log(`═══════════════════════════════════════\n`);
 }

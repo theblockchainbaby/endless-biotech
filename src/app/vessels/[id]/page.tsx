@@ -620,45 +620,45 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
       </Card>
 
       {/* Lineage */}
-      {(vessel.parentVessel || (vessel.childVessels && vessel.childVessels.length > 0)) && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Lineage</CardTitle>
-              <Link href={`/vessels/${vessel.id}/lineage`}>
-                <Button variant="outline" size="sm">View Full Tree</Button>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Lineage</CardTitle>
+            <Link href={`/vessels/${vessel.id}/lineage`}>
+              <Button variant="outline" size="sm">View Full Tree</Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {vessel.parentVessel ? (
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Parent Vessel</p>
+              <Link href={`/vessels/${vessel.parentVessel.id}`} className="font-mono text-sm hover:underline">
+                {vessel.parentVessel.barcode}
               </Link>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {vessel.parentVessel && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Parent Vessel</p>
-                <Link href={`/vessels/${vessel.parentVessel.id}`} className="font-mono text-sm hover:underline">
-                  {vessel.parentVessel.barcode}
-                </Link>
+          ) : (
+            <p className="text-sm text-muted-foreground">No parent — this is a root vessel.</p>
+          )}
+          {vessel.childVessels && vessel.childVessels.length > 0 && (
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">Child Vessels ({vessel.childVessels.length})</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {vessel.childVessels.map((child) => (
+                  <Link
+                    key={child.id}
+                    href={`/vessels/${child.id}`}
+                    className="flex items-center justify-between p-2 rounded-md border hover:bg-accent/50 transition-colors"
+                  >
+                    <span className="font-mono text-sm">{child.barcode}</span>
+                    <StatusBadge status={child.status} />
+                  </Link>
+                ))}
               </div>
-            )}
-            {vessel.childVessels && vessel.childVessels.length > 0 && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Child Vessels ({vessel.childVessels.length})</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {vessel.childVessels.map((child) => (
-                    <Link
-                      key={child.id}
-                      href={`/vessels/${child.id}`}
-                      className="flex items-center justify-between p-2 rounded-md border hover:bg-accent/50 transition-colors"
-                    >
-                      <span className="font-mono text-sm">{child.barcode}</span>
-                      <StatusBadge status={child.status} />
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Activity log */}
       <Card>
