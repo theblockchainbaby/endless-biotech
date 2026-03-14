@@ -18,26 +18,6 @@ import { BorderBeam } from "@/components/magicui/border-beam";
 import { Marquee } from "@/components/magicui/marquee";
 import { Particles } from "@/components/magicui/particles";
 
-function Logo({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M7 20h10" />
-      <path d="M10 20c5.5-2.5.8-6.4 3-10" />
-      <path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z" />
-      <path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z" />
-    </svg>
-  );
-}
-
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0 },
@@ -160,9 +140,15 @@ export function LandingPage() {
             <Image src="/logo.png" alt="VitrOS" width={500} height={488} className="h-12 w-auto" />
             <Image src="/logo-text.png" alt="VitrOS" width={573} height={155} className="h-8 w-auto" />
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="#pricing">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Link href="/features">
+              <Button variant="ghost" size="sm">Features</Button>
+            </Link>
+            <Link href="/pricing">
               <Button variant="ghost" size="sm">Pricing</Button>
+            </Link>
+            <Link href="/demo" className="hidden sm:inline-flex">
+              <Button variant="ghost" size="sm">Demo</Button>
             </Link>
             <Link href="/login">
               <Button variant="ghost" size="sm">Sign In</Button>
@@ -193,11 +179,11 @@ export function LandingPage() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.1]"
           >
-            Tissue Culture Lab{" "}
+            The Operating System for{" "}
             <span className="inline">
-              Management,{" "}
+              Tissue Culture{" "}
               <WordRotate
-                words={["Evolved", "Automated", "Simplified", "Refined"]}
+                words={["Labs", "Operations", "Teams", "Production"]}
                 className="text-primary inline"
                 duration={2500}
               />
@@ -484,14 +470,48 @@ export function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8 px-4">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center">
-            <Image src="/logo.png" alt="VitrOS" width={100} height={67} className="h-8 w-auto" />
+      <footer className="border-t py-10 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-8">
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Product</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/features" className="hover:text-foreground transition-colors">Features</Link></li>
+                <li><Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link></li>
+                <li><Link href="/demo" className="hover:text-foreground transition-colors">Get a Demo</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Company</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/why-vitros" className="hover:text-foreground transition-colors">Why VitrOS</Link></li>
+                <li><a href="mailto:support@vitroslabs.com" className="hover:text-foreground transition-colors">Contact</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Resources</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/login" className="hover:text-foreground transition-colors">Sign In</Link></li>
+                <li><Link href="/signup" className="hover:text-foreground transition-colors">Start Free</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Built For</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>Tissue Culture Labs</li>
+                <li>Plant Propagation</li>
+                <li>Commercial Nurseries</li>
+              </ul>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} VitrOS Labs. Powered by Caipher. All rights reserved.
-          </p>
+          <div className="border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center">
+              <Image src="/logo.png" alt="VitrOS" width={100} height={67} className="h-8 w-auto" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              &copy; {new Date().getFullYear()} VitrOS Labs. Powered by Caipher. All rights reserved.
+            </p>
+          </div>
         </div>
       </footer>
     </div>

@@ -15,15 +15,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // Root page: sidebar only when authenticated
-  if (pathname === "/" && status !== "authenticated") {
-    if (status === "loading") {
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
-        </div>
-      );
-    }
+  // Public marketing pages: no sidebar, always render children (SSR-friendly)
+  const publicPaths = ["/", "/pricing", "/features", "/demo", "/why-vitros"];
+  if (publicPaths.includes(pathname) && status !== "authenticated") {
     return <>{children}</>;
   }
 

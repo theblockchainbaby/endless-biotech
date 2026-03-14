@@ -21,19 +21,20 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://vitroslabs.com"),
-  title: "VitrOS — Lab Management Software for Tissue Culture Labs",
+  title: "VitrOS | Lab Management Software for Tissue Culture Labs",
   description:
-    "VitrOS is lab management software purpose-built for tissue culture. Track vessels, manage lab inventory, streamline workflows, and monitor contamination — all in one platform.",
+    "VitrOS is the modern lab management software built for tissue culture. Track vessels, schedule subcultures, and manage your entire operation in one platform.",
   keywords: [
     "lab management software",
     "tissue culture lab",
+    "tissue culture operating system",
     "lab inventory software",
     "lab workflow software",
     "tissue culture tracking",
     "vessel tracking",
-    "tissue culture management",
     "plant propagation software",
-    "lab contamination tracking",
+    "laboratory automation software",
+    "lab tracking software",
   ],
   manifest: "/manifest.json",
   appleWebApp: {
@@ -42,18 +43,18 @@ export const metadata: Metadata = {
     title: "VitrOS",
   },
   openGraph: {
-    title: "VitrOS — Lab Management Software for Tissue Culture Labs",
+    title: "VitrOS | Lab Management Software for Tissue Culture Labs",
     description:
-      "Purpose-built lab management software for tissue culture. Track every vessel, manage inventory, and streamline your lab workflow.",
+      "VitrOS is the modern lab management software built for tissue culture. Track vessels, schedule subcultures, and manage your entire operation in one platform.",
     type: "website",
     siteName: "VitrOS",
     url: "https://vitroslabs.com",
   },
   twitter: {
     card: "summary_large_image",
-    title: "VitrOS — Lab Management Software for Tissue Culture Labs",
+    title: "VitrOS | Lab Management Software for Tissue Culture Labs",
     description:
-      "Purpose-built lab management software for tissue culture. Track every vessel, manage inventory, and streamline your lab workflow.",
+      "VitrOS is the modern lab management software built for tissue culture. Track vessels, schedule subcultures, and manage your entire operation in one platform.",
   },
   other: {
     "mobile-web-app-capable": "yes",
@@ -70,6 +71,32 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#3d8b3d" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              "name": "VitrOS",
+              "applicationCategory": "BusinessApplication",
+              "operatingSystem": "Web",
+              "description": "Lab management software built for tissue culture. Track vessels, schedule subcultures, and manage your entire operation in one platform.",
+              "url": "https://vitroslabs.com",
+              "offers": {
+                "@type": "AggregateOffer",
+                "lowPrice": "499",
+                "highPrice": "2499",
+                "priceCurrency": "USD",
+                "offerCount": "3",
+              },
+              "publisher": {
+                "@type": "Organization",
+                "name": "VitrOS Labs",
+                "url": "https://vitroslabs.com",
+              },
+            }),
+          }}
+        />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>

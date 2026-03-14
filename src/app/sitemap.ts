@@ -1,24 +1,51 @@
 import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const baseUrl = 'https://vitroslabs.com'
+  const now = new Date()
+
   return [
     {
-      url: 'https://vitroslabs.com',
-      lastModified: new Date(),
+      url: baseUrl,
+      lastModified: now,
       changeFrequency: 'weekly',
       priority: 1,
     },
     {
-      url: 'https://vitroslabs.com/login',
-      lastModified: new Date(),
+      url: `${baseUrl}/features`,
+      lastModified: now,
       changeFrequency: 'monthly',
-      priority: 0.5,
+      priority: 0.9,
     },
     {
-      url: 'https://vitroslabs.com/signup',
-      lastModified: new Date(),
+      url: `${baseUrl}/pricing`,
+      lastModified: now,
       changeFrequency: 'monthly',
-      priority: 0.5,
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/demo`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/why-vitros`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/signup`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/login`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.3,
     },
   ]
 }
