@@ -6,6 +6,7 @@ import { z } from "zod";
 const createCloneLineSchema = z.object({
   name: z.string().min(1, "Name is required"),
   code: z.string().nullable().optional(),
+  lineNumber: z.number().int().positive().nullable().optional(),
   cultivarId: z.string().min(1, "Cultivar is required"),
   sourceType: z.enum(["mother_plant", "meristem", "seed"]).default("mother_plant"),
   motherPlantId: z.string().nullable().optional(),

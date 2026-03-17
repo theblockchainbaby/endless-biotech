@@ -9,13 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, AlertTriangle, CheckCircle, Clock, TrendingDown, Download, CalendarDays, ArrowRight, Truck, FlaskConical } from "lucide-react";
+import { Plus, AlertTriangle, CheckCircle, Clock, TrendingDown, Download, CalendarDays, ArrowRight, Truck, FlaskConical, Calculator } from "lucide-react";
 import {
   generateDemandProjections,
   generateLongRangeProjection,
   generateProductionSchedule,
   exportDemandCSV,
   getDefaultStages,
+  calculateBackwardRequirements,
+  getTotalPipelineWeeks,
   type DemandOrder,
   type DemandSummary,
   type ScheduleWeek,
@@ -70,7 +72,17 @@ const ACTION_STYLES: Record<string, { icon: React.ReactNode; color: string; labe
   ship: { icon: <Truck className="size-3.5" />, color: "bg-amber-500/10 text-amber-700", label: "Ship" },
 };
 
-type ViewTab = "projections" | "schedule";
+type ViewTab = "projections" | "schedule" | "backward";
+
+interface BackwardPlan {
+  deliveryDate: string;
+  cultivarName: string;
+  quantity: number;
+  stages: StageYield[];
+  timeline: { stage: string; startDate: string; endDate: string; vesselsNeeded: number }[];
+  initiationDate: string;
+  totalWeeks: number;
+}
 
 export default function DemandPlanningPage() {
   const [orders, setOrders] = useState<SalesOrder[]>([]);
@@ -93,6 +105,13 @@ export default function DemandPlanningPage() {
     priority: "normal",
     notes: "",
   });
+  const [backwardForm, setBackwardForm] = useState({
+    deliveryDate: "",
+    cultivarId: "",
+    quantity: "",
+    deliveryType: "gen_zero_direct",
+  });
+  const [backwardPlan, setBackwardPlan] = useState<BackwardPlan | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -168,6 +187,87 @@ export default function DemandPlanningPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  function computeBackwardPlan() {
+    if (!backwardForm.deliveryDate || !backwardForm.cultivarId || !backwardForm.quantity) return;
+    const cultivar = cultivars.find((c) => c.id === backwardForm.cultivarId);
+    if (!cultivar) return;
+    const qty = parseInt(backwardForm.quantity);
+    if (!qty || qty <= 0) return;
+
+    const stages: StageYield[] = cultivar.stageConfig?.stages?.map((s) => ({
+      stage: s.name,
+      durationWeeks: s.durationWeeks,
+      multiplicationRate: s.multiplicationRate,
+      survivalRate: s.survivalRate,
+    })) || getDefaultStages();
+
+    const requirements = calculateBackwardRequirements(qty, stages);
+    const totalWeeks = getTotalPipelineWeeks(stages);
+
+    const deliveryDate = new Date(backwardForm.deliveryDate);
+    const timeline: BackwardPlan["timeline"] = [];
+
+    // Build stage timeline from the end backwards
+    let stageEnd = new Date(deliveryDate);
+    for (let i = stages.length - 1; i >= 0; i--) {
+      const stage = stages[i];
+      const stageStart = new Date(stageEnd);
+      stageStart.setDate(stageStart.getDate() - stage.durationWeeks * 7);
+      timeline.unshift({
+        stage: stage.stage,
+        startDate: stageStart.toISOString().split("T")[0],
+        endDate: stageEnd.toISOString().split("T")[0],
+        vesselsNeeded: requirements[stage.stage] || 0,
+      });
+      stageEnd = new Date(stageStart);
+    }
+
+    const initiationDate = timeline[0]?.startDate || "";
+
+    setBackwardPlan({
+      deliveryDate: backwardForm.deliveryDate,
+      cultivarName: cultivar.name,
+      quantity: qty,
+      stages,
+      timeline,
+      initiationDate,
+      totalWeeks,
+    });
+  }
+
+  function exportBackwardICS() {
+    if (!backwardPlan) return;
+    const lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//VitrOS Labs//Production Schedule//EN",
+      "CALSCALE:GREGORIAN",
+    ];
+
+    backwardPlan.timeline.forEach((t) => {
+      const uid = `${t.stage}-${t.startDate}@vitroslabs`;
+      const dtstart = t.startDate.replace(/-/g, "");
+      const summary = `[TC] ${t.stage.toUpperCase()} — ${t.vesselsNeeded} vessels (${backwardPlan.cultivarName})`;
+      lines.push(
+        "BEGIN:VEVENT",
+        `UID:${uid}`,
+        `DTSTART;VALUE=DATE:${dtstart}`,
+        `SUMMARY:${summary}`,
+        `DESCRIPTION:Target delivery: ${backwardPlan.deliveryDate} | Qty: ${backwardPlan.quantity}`,
+        "END:VEVENT"
+      );
+    });
+
+    lines.push("END:VCALENDAR");
+    const blob = new Blob([lines.join("\r\n")], { type: "text/calendar" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `production-schedule-${backwardPlan.cultivarName}-${backwardPlan.deliveryDate}.ics`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function handleCreate() {
     const res = await fetch("/api/sales-orders", {
@@ -308,6 +408,13 @@ export default function DemandPlanningPage() {
           >
             <CalendarDays className="size-3.5" />
             Production Schedule
+          </button>
+          <button
+            onClick={() => setActiveTab("backward")}
+            className={`px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-1.5 ${activeTab === "backward" ? "bg-background shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <Calculator className="size-3.5" />
+            Backward Plan
           </button>
         </div>
         <div className="flex items-center gap-2">
@@ -463,7 +570,7 @@ export default function DemandPlanningPage() {
             </CardContent>
           </Card>
         ) : null
-      ) : (
+      ) : activeTab === "schedule" ? (
         /* Production Schedule view */
         schedule.length > 0 ? (
           <div className="space-y-3">
@@ -518,6 +625,153 @@ export default function DemandPlanningPage() {
             </CardContent>
           </Card>
         )
+      ) : (
+        /* Backward Planning Calculator */
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Calculator className="size-4" />
+                Delivery Date Calculator
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Enter your target delivery date and quantity to see exactly when each stage must start.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Delivery Date</Label>
+                  <Input
+                    type="date"
+                    value={backwardForm.deliveryDate}
+                    onChange={(e) => setBackwardForm({ ...backwardForm, deliveryDate: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cultivar</Label>
+                  <Select value={backwardForm.cultivarId} onValueChange={(v) => setBackwardForm({ ...backwardForm, cultivarId: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select cultivar" /></SelectTrigger>
+                    <SelectContent>
+                      {cultivars.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Quantity (finished plants)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={backwardForm.quantity}
+                    onChange={(e) => setBackwardForm({ ...backwardForm, quantity: e.target.value })}
+                    placeholder="e.g., 500"
+                    className="font-mono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Delivery Type</Label>
+                  <Select value={backwardForm.deliveryType} onValueChange={(v) => setBackwardForm({ ...backwardForm, deliveryType: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gen_zero_direct">Gen-0 Direct Delivery</SelectItem>
+                      <SelectItem value="gen_zero_to_nursery">Gen-0 to Nursery</SelectItem>
+                      <SelectItem value="gen_one_cuts">Gen-1 Cuttings</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Button
+                onClick={computeBackwardPlan}
+                disabled={!backwardForm.deliveryDate || !backwardForm.cultivarId || !backwardForm.quantity}
+                className="w-full"
+              >
+                <Calculator className="size-4 mr-2" /> Calculate Schedule
+              </Button>
+            </CardContent>
+          </Card>
+
+          {backwardPlan && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center justify-between">
+                  <span>
+                    {backwardPlan.cultivarName} — {backwardPlan.quantity.toLocaleString()} plants by {new Date(backwardPlan.deliveryDate).toLocaleDateString()}
+                  </span>
+                  <Button variant="outline" size="sm" onClick={exportBackwardICS}>
+                    <Download className="size-3.5 mr-1.5" /> Export ICS
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                  <AlertTriangle className="size-4 text-amber-600 mt-0.5 shrink-0" />
+                  <p className="text-sm text-amber-700">
+                    <strong>Initiation must start by {new Date(backwardPlan.initiationDate).toLocaleDateString()}</strong>
+                    {" "}— {backwardPlan.totalWeeks} weeks before delivery.
+                  </p>
+                </div>
+                <div className="relative">
+                  {/* Timeline */}
+                  <div className="space-y-0">
+                    {backwardPlan.timeline.map((t, i) => {
+                      const isFirst = i === 0;
+                      const isLast = i === backwardPlan.timeline.length - 1;
+                      const stageColors: Record<string, string> = {
+                        initiation: "bg-blue-500",
+                        multiplication: "bg-green-500",
+                        rooting: "bg-purple-500",
+                        acclimation: "bg-orange-500",
+                        hardening: "bg-red-500",
+                      };
+                      const dotColor = stageColors[t.stage] || "bg-gray-500";
+                      return (
+                        <div key={t.stage} className="flex gap-4">
+                          <div className="flex flex-col items-center">
+                            <div className={`size-3 rounded-full mt-5 ${dotColor} ring-2 ring-white ring-offset-1`} />
+                            {!isLast && <div className="w-0.5 flex-1 bg-border" />}
+                          </div>
+                          <div className={`pb-4 flex-1 ${isFirst ? "pt-3" : "pt-3"}`}>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium capitalize text-sm">{t.stage}</p>
+                                <p className="text-xs text-muted-foreground font-mono">
+                                  {new Date(t.startDate).toLocaleDateString()} → {new Date(t.endDate).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-lg font-mono font-bold">{t.vesselsNeeded.toLocaleString()}</p>
+                                <p className="text-xs text-muted-foreground">vessels needed</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {/* Delivery marker */}
+                    <div className="flex gap-4">
+                      <div className="flex flex-col items-center">
+                        <div className="size-3 rounded-full mt-5 bg-green-600 ring-2 ring-white ring-offset-1" />
+                      </div>
+                      <div className="pt-3 flex-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Truck className="size-4 text-green-600" />
+                            <p className="font-semibold text-sm text-green-700">Delivery</p>
+                          </div>
+                          <p className="text-sm font-mono text-green-700">
+                            {new Date(backwardPlan.deliveryDate).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
     </div>
   );

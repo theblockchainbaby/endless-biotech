@@ -73,6 +73,7 @@ export default function WhyVitrOSPage() {
           <div className="flex items-center gap-1 sm:gap-2">
             <Link href="/features"><Button variant="ghost" size="sm">Features</Button></Link>
             <Link href="/pricing"><Button variant="ghost" size="sm">Pricing</Button></Link>
+            <Link href="/blog" className="hidden sm:inline-flex"><Button variant="ghost" size="sm">Blog</Button></Link>
             <Link href="/demo" className="hidden sm:inline-flex"><Button variant="ghost" size="sm">Demo</Button></Link>
             <Link href="/login"><Button variant="ghost" size="sm">Sign In</Button></Link>
             <Link href="/signup"><Button size="sm">Start Free</Button></Link>
@@ -223,18 +224,49 @@ export default function WhyVitrOSPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8 px-4">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <Link href="/" className="flex items-center">
-            <Image src="/logo.png" alt="VitrOS" width={100} height={67} className="h-8 w-auto" />
-          </Link>
-          <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <Link href="/features" className="hover:text-foreground">Features</Link>
-            <Link href="/pricing" className="hover:text-foreground">Pricing</Link>
-            <Link href="/demo" className="hover:text-foreground">Demo</Link>
-            <Link href="/why-vitros" className="hover:text-foreground">Why VitrOS</Link>
+      <footer className="border-t py-10 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-8">
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Product</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/features" className="hover:text-foreground transition-colors">Features</Link></li>
+                <li><Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link></li>
+                <li><Link href="/demo" className="hover:text-foreground transition-colors">Demo</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Company</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/why-vitros" className="hover:text-foreground transition-colors">Why VitrOS</Link></li>
+                <li><a href="mailto:support@vitroslabs.com" className="hover:text-foreground transition-colors">Contact</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Resources</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link></li>
+                <li><Link href="/login" className="hover:text-foreground transition-colors">Sign In</Link></li>
+                <li><Link href="/signup" className="hover:text-foreground transition-colors">Start Free</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-3">Built For</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>Tissue Culture Labs</li>
+                <li>Plant Propagation</li>
+                <li>Commercial Nurseries</li>
+              </ul>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">&copy; {new Date().getFullYear()} VitrOS Labs</p>
+          <div className="border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center">
+              <Image src="/logo.png" alt="VitrOS" width={100} height={67} className="h-8 w-auto" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              &copy; {new Date().getFullYear()} VitrOS Labs. Powered by Caipher. All rights reserved.
+            </p>
+          </div>
         </div>
       </footer>
     </div>

@@ -6,7 +6,9 @@ import { z } from "zod";
 const updateCloneLineSchema = z.object({
   name: z.string().min(1).optional(),
   code: z.string().nullable().optional(),
+  lineNumber: z.number().int().positive().nullable().optional(),
   status: z.enum(["active", "retired", "quarantined"]).optional(),
+  sourceType: z.enum(["mother_plant", "meristem", "seed"]).optional(),
   notes: z.string().nullable().optional(),
 });
 
@@ -18,13 +20,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const cloneLine = await prisma.cloneLine.findFirst({
       where: { id, organizationId: user.organizationId },
       include: {
-        cultivar: true,
-        vessels: {
-          where: { status: { not: "disposed" } },
-          include: { location: { select: { name: true } } },
-          orderBy: { createdAt: "desc" },
-          take: 100,
+        cultivar: { select: { id: true, name: true, code: true, species: true } },
+        pathogenTests: {
+          orderBy: { testDate: "desc" },
+          include: { loggedBy: { select: { id: true, name: true } } },
         },
+        _count: { select: { vessels: true } },
       },
     });
 
@@ -32,7 +33,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Clone line not found" }, { status: 404 });
     }
 
-    return NextResponse.json(cloneLine);
+    const stageCounts = await prisma.vessel.groupBy({
+      by: ["stage"],
+      where: { cloneLineId: id, organizationId: user.organizationId, status: { not: "disposed" } },
+      _count: true,
+    });
+
+    return NextResponse.json({
+      ...cloneLine,
+      vesselCount: cloneLine._count.vessels,
+      byStage: stageCounts.reduce((acc, s) => ({ ...acc, [s.stage]: s._count }), {} as Record<string, number>),
+    });
   } catch (error) {
     return handleApiError(error);
   }

@@ -10,6 +10,6 @@ export default function Home() {
   if (status === "authenticated") return <Dashboard />;
 
   // Always render landing page during loading + unauthenticated
-  // This ensures crawlers see full HTML content (SSR)
+  // Root metadata is set in layout.tsx since this is a client component
   return <LandingPage />;
 }

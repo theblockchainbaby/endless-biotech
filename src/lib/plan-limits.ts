@@ -5,7 +5,7 @@ import { ApiError } from "./api-helpers";
 export async function checkVesselLimit(organizationId: string) {
   const org = await prisma.organization.findUnique({
     where: { id: organizationId },
-    select: { plan: true, planStatus: true },
+    select: { plan: true, planStatus: true, vesselLimitOverride: true },
   });
   if (!org) throw new ApiError("Organization not found", 404);
 
@@ -16,8 +16,10 @@ export async function checkVesselLimit(organizationId: string) {
     );
   }
 
+  // vesselLimitOverride takes priority over plan-based limit
   const plan = PLAN_CONFIG[org.plan as PlanName] || PLAN_CONFIG.free;
-  if (plan.maxVessels === Infinity) return;
+  const effectiveLimit = org.vesselLimitOverride ?? (plan.maxVessels === Infinity ? Infinity : plan.maxVessels);
+  if (effectiveLimit === Infinity) return;
 
   const activeVesselCount = await prisma.vessel.count({
     where: {
@@ -26,9 +28,9 @@ export async function checkVesselLimit(organizationId: string) {
     },
   });
 
-  if (activeVesselCount >= plan.maxVessels) {
+  if (activeVesselCount >= effectiveLimit) {
     throw new ApiError(
-      `You've reached the ${plan.name} plan limit of ${plan.maxVessels.toLocaleString()} active vessels. Upgrade your plan to add more.`,
+      `You've reached the vessel limit of ${effectiveLimit.toLocaleString()} active vessels. Contact support to increase your limit.`,
       403
     );
   }
@@ -72,6 +74,7 @@ export async function getOrgPlanStatus(organizationId: string) {
       trialEndsAt: true,
       currentPeriodEnd: true,
       stripeSubscriptionId: true,
+      vesselLimitOverride: true,
       _count: {
         select: {
           users: true,
@@ -83,6 +86,7 @@ export async function getOrgPlanStatus(organizationId: string) {
   if (!org) throw new ApiError("Organization not found", 404);
 
   const planConfig = PLAN_CONFIG[org.plan as PlanName] || PLAN_CONFIG.free;
+  const effectiveVesselLimit = org.vesselLimitOverride ?? (planConfig.maxVessels === Infinity ? -1 : planConfig.maxVessels);
 
   return {
     plan: org.plan,
@@ -93,7 +97,7 @@ export async function getOrgPlanStatus(organizationId: string) {
     hasSubscription: !!org.stripeSubscriptionId,
     price: planConfig.price,
     limits: {
-      maxVessels: planConfig.maxVessels === Infinity ? -1 : planConfig.maxVessels,
+      maxVessels: effectiveVesselLimit,
       maxTeamMembers: planConfig.maxTeamMembers === Infinity ? -1 : planConfig.maxTeamMembers,
       currentVessels: org._count.vessels,
       currentTeamMembers: org._count.users,

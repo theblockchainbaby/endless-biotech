@@ -1,4 +1,5 @@
 import "next-auth";
+import "@auth/core/jwt";
 
 declare module "next-auth" {
   interface Session {

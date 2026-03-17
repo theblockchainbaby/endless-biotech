@@ -13,7 +13,21 @@ import { PageHeader } from "@/components/page-header";
 import { CultivarHealthBadge, StageBadge, HealthBadge } from "@/components/status-badge";
 import { STAGE_LABELS, HEALTH_STATUS_LABELS, VESSEL_STATUS_LABELS } from "@/lib/constants";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, RotateCcw } from "lucide-react";
+import { ArrowLeft, Pencil, RotateCcw, Plus, FlaskConical, ChevronRight } from "lucide-react";
+
+interface CloneLine {
+  id: string;
+  name: string;
+  code: string | null;
+  lineNumber: number | null;
+  status: string;
+  sourceType: string;
+  lastTestResult: string | null;
+  lastTestedAt: string | null;
+  vesselCount: number;
+  byStage: Record<string, number>;
+  createdAt: string;
+}
 
 interface CultivarMetrics {
   totalVessels: number;
@@ -64,6 +78,11 @@ export default function CultivarDetailPage({ params }: { params: Promise<{ id: s
   const [saving, setSaving] = useState(false);
   const [stageConfig, setStageConfig] = useState<StageConfigEntry[]>([]);
   const [savingStages, setSavingStages] = useState(false);
+  const [cloneLines, setCloneLines] = useState<CloneLine[]>([]);
+  const [linesLoading, setLinesLoading] = useState(true);
+  const [newLineOpen, setNewLineOpen] = useState(false);
+  const [newLineForm, setNewLineForm] = useState({ name: "", code: "", lineNumber: "", sourceType: "mother_plant", notes: "" });
+  const [savingLine, setSavingLine] = useState(false);
 
   const fetchCultivar = () => {
     fetch(`/api/cultivars/${id}`)
@@ -80,8 +99,18 @@ export default function CultivarDetailPage({ params }: { params: Promise<{ id: s
       .finally(() => setLoading(false));
   };
 
+  const fetchCloneLines = () => {
+    setLinesLoading(true);
+    fetch(`/api/clone-lines?cultivarId=${id}&status=all`)
+      .then((r) => r.json())
+      .then((data) => setCloneLines(Array.isArray(data) ? data : []))
+      .catch(() => setCloneLines([]))
+      .finally(() => setLinesLoading(false));
+  };
+
   useEffect(() => {
     fetchCultivar();
+    fetchCloneLines();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -144,6 +173,39 @@ export default function CultivarDetailPage({ params }: { params: Promise<{ id: s
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleCreateLine = async () => {
+    if (!newLineForm.name.trim()) {
+      toast.error("Line name is required");
+      return;
+    }
+    setSavingLine(true);
+    try {
+      const res = await fetch("/api/clone-lines", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newLineForm.name.trim(),
+          code: newLineForm.code.trim() || null,
+          lineNumber: newLineForm.lineNumber ? parseInt(newLineForm.lineNumber) : null,
+          cultivarId: id,
+          sourceType: newLineForm.sourceType,
+          notes: newLineForm.notes.trim() || null,
+        }),
+      });
+      if (res.ok) {
+        toast.success("Clone line created");
+        setNewLineOpen(false);
+        setNewLineForm({ name: "", code: "", lineNumber: "", sourceType: "mother_plant", notes: "" });
+        fetchCloneLines();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Failed to create line");
+      }
+    } finally {
+      setSavingLine(false);
     }
   };
 
@@ -326,6 +388,138 @@ export default function CultivarDetailPage({ params }: { params: Promise<{ id: s
               </div>
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Meristematic Lines */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <FlaskConical className="size-4" />
+              Meristematic Lines
+              <span className="text-sm font-normal text-muted-foreground">({cloneLines.length})</span>
+            </span>
+            <Dialog open={newLineOpen} onOpenChange={setNewLineOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <Plus className="size-3.5 mr-1.5" /> New Line
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>New Clone Line</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-2">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Line Name</Label>
+                      <Input
+                        value={newLineForm.name}
+                        onChange={(e) => setNewLineForm({ ...newLineForm, name: e.target.value })}
+                        placeholder="e.g., Gelato 33-A"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Line # (optional)</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={newLineForm.lineNumber}
+                        onChange={(e) => setNewLineForm({ ...newLineForm, lineNumber: e.target.value })}
+                        placeholder="e.g., 1"
+                        className="font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Code (optional)</Label>
+                      <Input
+                        value={newLineForm.code}
+                        onChange={(e) => setNewLineForm({ ...newLineForm, code: e.target.value.toUpperCase() })}
+                        placeholder="e.g., G33-A"
+                        className="font-mono"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Source Type</Label>
+                      <Select value={newLineForm.sourceType} onValueChange={(v) => setNewLineForm({ ...newLineForm, sourceType: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mother_plant">Mother Plant</SelectItem>
+                          <SelectItem value="meristem">Meristem</SelectItem>
+                          <SelectItem value="seed">Seed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Notes (optional)</Label>
+                    <Textarea
+                      value={newLineForm.notes}
+                      onChange={(e) => setNewLineForm({ ...newLineForm, notes: e.target.value })}
+                      rows={2}
+                      placeholder="Any initial observations..."
+                    />
+                  </div>
+                  <Button onClick={handleCreateLine} disabled={savingLine} className="w-full">
+                    {savingLine ? "Creating..." : "Create Line"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {linesLoading ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Loading lines...</p>
+          ) : cloneLines.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No clone lines yet. Create your first line to start tracking meristematic cultures.
+            </p>
+          ) : (
+            <div className="divide-y">
+              {cloneLines.map((line) => (
+                <Link
+                  key={line.id}
+                  href={`/clone-lines/${line.id}`}
+                  className="flex items-center justify-between py-3 px-1 hover:bg-muted/40 rounded transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    {line.lineNumber && (
+                      <span className="text-xs font-mono text-muted-foreground w-6 text-center">#{line.lineNumber}</span>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium">{line.name}</p>
+                      {line.code && <p className="text-xs text-muted-foreground font-mono">{line.code}</p>}
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      line.status === "active" ? "bg-green-100 text-green-700" :
+                      line.status === "quarantined" ? "bg-red-100 text-red-700" :
+                      "bg-muted text-muted-foreground"
+                    }`}>
+                      {line.status}
+                    </span>
+                    {line.lastTestResult && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        line.lastTestResult === "clean" ? "bg-green-100 text-green-700" :
+                        line.lastTestResult === "dirty" ? "bg-red-100 text-red-700" :
+                        "bg-yellow-100 text-yellow-700"
+                      }`}>
+                        {line.lastTestResult === "clean" ? "Clean" : line.lastTestResult === "dirty" ? "Dirty" : "Inconclusive"}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <span className="font-mono">{line.vesselCount} vessels</span>
+                    <ChevronRight className="size-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

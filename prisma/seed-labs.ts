@@ -349,6 +349,55 @@ const LABS: LabConfig[] = [
     ],
     vesselCount: 400,
   },
+
+  // ── Phinest Tissue Culture ──
+  {
+    name: "Phinest Tissue Culture",
+    slug: "phinest",
+    email: "demo@phinest.vitros.app",
+    contactName: "Hector Monge",
+    address: "3835 N. Freeway Blvd. Suite #210, Sacramento, CA 95834",
+    siteName: "Sacramento TC Facility",
+    cultivars: [
+      { name: "Grapes and Cream", code: "CAN-GNC", species: "Cannabis hybrid", strain: "Grapes and Cream" },
+      { name: "Super Runtz", code: "CAN-SRZ", species: "Cannabis hybrid", strain: "Super Runtz" },
+      { name: "Lava Cake", code: "CAN-LVC", species: "Cannabis indica", strain: "Lava Cake" },
+      { name: "Gelato 33", code: "CAN-G33", species: "Cannabis hybrid", strain: "Gelato 33" },
+      { name: "Sunset Sherbet", code: "CAN-SSH", species: "Cannabis hybrid", strain: "Sunset Sherbet" },
+      { name: "Purple Punch 2.0", code: "CAN-PP2", species: "Cannabis indica", strain: "Purple Punch 2.0" },
+      { name: "Mimosa", code: "CAN-MMS", species: "Cannabis sativa", strain: "Mimosa" },
+      { name: "Wedding Crasher", code: "CAN-WCR", species: "Cannabis hybrid", strain: "Wedding Crasher" },
+      { name: "Fatso", code: "CAN-FAT", species: "Cannabis indica", strain: "Fatso" },
+      { name: "RS11", code: "CAN-R11", species: "Cannabis hybrid", strain: "RS11" },
+      { name: "Amaretto Mintz", code: "CAN-AMZ", species: "Cannabis hybrid", strain: "Amaretto Mintz" },
+      { name: "Carbon Fiber", code: "CAN-CBF", species: "Cannabis hybrid", strain: "Carbon Fiber" },
+    ],
+    locations: [
+      { name: "TC Lab 1 — Flow Hood A", type: "flow_hood", capacity: 350 },
+      { name: "TC Lab 1 — Flow Hood B", type: "flow_hood", capacity: 350 },
+      { name: "TC Lab 2 — Flow Hood C", type: "flow_hood", capacity: 300 },
+      { name: "TC Lab 2 — Flow Hood D", type: "flow_hood", capacity: 300 },
+      { name: "TC Lab 3 — Meristem Isolation", type: "flow_hood", capacity: 200 },
+      { name: "Growth Chamber A", type: "growth_chamber", capacity: 800 },
+      { name: "Growth Chamber B", type: "growth_chamber", capacity: 800 },
+      { name: "Growth Chamber C", type: "growth_chamber", capacity: 600 },
+      { name: "Mother Room", type: "growth_chamber", capacity: 300 },
+      { name: "Rooting Chamber", type: "growth_chamber", capacity: 600 },
+      { name: "Germplasm Bank — Cold Storage", type: "cold_storage", capacity: 500 },
+      { name: "Nursery Bay A", type: "greenhouse", capacity: 2000 },
+      { name: "Nursery Bay B", type: "greenhouse", capacity: 2000 },
+      { name: "Hardening Greenhouse", type: "greenhouse", capacity: 1500 },
+      { name: "Acclimation Bench Section", type: "bench", capacity: 600 },
+    ],
+    mediaRecipes: [
+      { name: "MS + 1mg/L BAP (Cannabis Mult)", baseMedia: "MS", targetPH: 5.7, agar: 8.0, sucrose: 30.0, stage: "multiplication" },
+      { name: "MS + 0.5mg/L TDZ (High Mult)", baseMedia: "MS", targetPH: 5.8, agar: 7.5, sucrose: 25.0, stage: "multiplication" },
+      { name: "MS + 0.5mg/L IBA Rooting", baseMedia: "MS", targetPH: 5.8, agar: 7.0, sucrose: 30.0, stage: "rooting" },
+      { name: "MS Meristem Tip Initiation", baseMedia: "MS", targetPH: 5.7, agar: 8.0, sucrose: 30.0, stage: "initiation" },
+      { name: "MS + PPM Pathogen Remediation", baseMedia: "MS", targetPH: 5.7, agar: 8.0, sucrose: 20.0, stage: "initiation" },
+    ],
+    vesselCount: 500,
+  },
 ];
 
 async function seedLab(lab: LabConfig) {
@@ -664,7 +713,7 @@ async function main() {
   }
 
   console.log("\n══════════════════════════════════════════════");
-  console.log("✅ All 7 lab demos ready!");
+  console.log("✅ All lab demos ready!");
   console.log("══════════════════════════════════════════════");
   console.log("");
   for (const lab of LABS) {

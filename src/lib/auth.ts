@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@auth/prisma-adapter";
+
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 import { rateLimit } from "./rate-limit";
@@ -41,6 +41,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
         if (!isValid) return null;
 
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLogin: new Date(), loginCount: { increment: 1 } },
+        });
+
         return {
           id: user.id,
           name: user.name,
@@ -77,6 +82,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
 
         if (!user) return null;
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLogin: new Date(), loginCount: { increment: 1 } },
+        });
 
         return {
           id: user.id,

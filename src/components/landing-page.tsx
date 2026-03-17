@@ -147,6 +147,9 @@ export function LandingPage() {
             <Link href="/pricing">
               <Button variant="ghost" size="sm">Pricing</Button>
             </Link>
+            <Link href="/blog" className="hidden sm:inline-flex">
+              <Button variant="ghost" size="sm">Blog</Button>
+            </Link>
             <Link href="/demo" className="hidden sm:inline-flex">
               <Button variant="ghost" size="sm">Demo</Button>
             </Link>
@@ -478,7 +481,7 @@ export function LandingPage() {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link href="/features" className="hover:text-foreground transition-colors">Features</Link></li>
                 <li><Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link></li>
-                <li><Link href="/demo" className="hover:text-foreground transition-colors">Get a Demo</Link></li>
+                <li><Link href="/demo" className="hover:text-foreground transition-colors">Demo</Link></li>
               </ul>
             </div>
             <div>
@@ -491,6 +494,7 @@ export function LandingPage() {
             <div>
               <h4 className="font-semibold text-sm mb-3">Resources</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link></li>
                 <li><Link href="/login" className="hover:text-foreground transition-colors">Sign In</Link></li>
                 <li><Link href="/signup" className="hover:text-foreground transition-colors">Start Free</Link></li>
               </ul>
