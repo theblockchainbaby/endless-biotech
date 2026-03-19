@@ -8,30 +8,35 @@ datasource db {
 }
 
 model Organization {
-  id                   String            @id @default(cuid())
+  id                   String              @id @default(cuid())
   name                 String
-  slug                 String            @unique
-  plan                 String            @default("free")
+  slug                 String              @unique
+  plan                 String              @default("free")
   settings             Json?
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
   currentPeriodEnd     DateTime?
-  planStatus           String            @default("active")
-  stripeCustomerId     String?           @unique
+  planStatus           String              @default("active")
+  stripeCustomerId     String?             @unique
   stripePriceId        String?
-  stripeSubscriptionId String?           @unique
+  stripeSubscriptionId String?             @unique
   trialEndsAt          DateTime?
   vesselLimitOverride  Int?
   alerts               Alert[]
   apiKeys              ApiKey[]
   cloneLines           CloneLine[]
   cultivars            Cultivar[]
+  incentiveConfig      IncentiveConfig?
+  incentivePointRules  IncentivePointRule[]
   inventoryItems       InventoryItem[]
   mediaRecipes         MediaRecipe[]
   pathogenTests        PathogenTest[]
   protocols            Protocol[]
   salesOrders          SalesOrder[]
+  shiftNotes           ShiftNote[]
   sites                Site[]
+  stations             Station[]
+  techShifts           TechShift[]
   users                User[]
   vessels              Vessel[]
   webhookEndpoints     WebhookEndpoint[]
@@ -73,6 +78,8 @@ model User {
   pathogenTests       PathogenTest[]       @relation("TestLoggedBy")
   photos              Photo[]              @relation("PhotoTakenBy")
   sessions            Session[]
+  shiftNotes          ShiftNote[]          @relation("ShiftNoteAuthor")
+  techShifts          TechShift[]          @relation("TechShiftUser")
   organization        Organization         @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId])
@@ -154,6 +161,7 @@ model Cultivar {
   stageConfig              Json?
   cloneLines               CloneLine[]
   defaultMediaRecipe       MediaRecipe? @relation("DefaultRecipe", fields: [defaultMediaRecipeId], references: [id])
+  incentivePointRules      IncentivePointRule[]
   organization             Organization @relation(fields: [organizationId], references: [id])
   photos                   Photo[]      @relation("CultivarPhotos")
   salesOrders              SalesOrder[]
@@ -497,4 +505,103 @@ model PathogenTest {
   @@index([organizationId])
   @@index([testDate])
   @@index([result])
+}
+
+// ─── Technician Performance & Incentive System ───────────────────────────────
+
+model IncentiveConfig {
+  id                      String       @id @default(cuid())
+  organizationId          String       @unique
+  baseHourlyRate          Float        @default(16.0)
+  pointDollarValue        Float        @default(0.025)
+  contaminationThreshold  Float        @default(5.0)
+  contaminationLookbackDays Int        @default(14)
+  bonusPeriod             String       @default("weekly") // daily, weekly, biweekly, monthly
+  dailyVesselTarget       Int?
+  enableIncentives        Boolean      @default(true)
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+  organization            Organization @relation(fields: [organizationId], references: [id])
+}
+
+model IncentivePointRule {
+  id             String       @id @default(cuid())
+  organizationId String
+  stage          String       // initiation, multiplication, rooting, hardening
+  containerType  String       @default("jar") // jar, tube, magenta_box, flask
+  taskType       String       @default("transfer") // transfer, initiation, grading, media_prep
+  basePoints     Float
+  cultivarId     String?      // optional cultivar-specific override
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  cultivar       Cultivar?    @relation(fields: [cultivarId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, stage, containerType, taskType, cultivarId])
+  @@index([organizationId])
+  @@index([organizationId, stage])
+}
+
+model Station {
+  id             String       @id @default(cuid())
+  name           String       // "Hood 1", "Hood 2", "Bench 3"
+  type           String       @default("laminar_flow_hood") // laminar_flow_hood, clean_bench, prep_station
+  locationId     String?      // optional link to a Location
+  isActive       Boolean      @default(true)
+  organizationId String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  techShifts     TechShift[]
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([name, organizationId])
+  @@index([organizationId])
+}
+
+model TechShift {
+  id             String       @id @default(cuid())
+  userId         String
+  stationId      String?
+  organizationId String
+  clockIn        DateTime
+  clockOut       DateTime?
+  hoursWorked    Float?       // computed on clock-out
+  isOvertime     Boolean      @default(false)
+  totalPoints    Float        @default(0)
+  vesselsProcessed Int        @default(0)
+  contaminationCount Int      @default(0)
+  effectiveRate  Float?       // computed: totalPoints * pointDollarValue / hoursWorked
+  bonusAmount    Float?       // computed: max(0, effectiveRate - baseHourlyRate) * hoursWorked
+  status         String       @default("active") // active, completed, void
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  user           User         @relation("TechShiftUser", fields: [userId], references: [id])
+  station        Station?     @relation(fields: [stationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([userId, clockIn])
+  @@index([organizationId, clockIn])
+  @@index([stationId])
+  @@index([status])
+}
+
+model ShiftNote {
+  id             String       @id @default(cuid())
+  authorId       String
+  organizationId String
+  content        String
+  priority       String       @default("normal") // normal, important, urgent
+  isRead         Boolean      @default(false)
+  shiftDate      DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  author         User         @relation("ShiftNoteAuthor", fields: [authorId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([organizationId, shiftDate])
+  @@index([authorId])
 }

@@ -32,6 +32,7 @@ import {
   ShoppingCart,
   Plug,
   CalendarClock,
+  Trophy,
 } from "lucide-react";
 import {
   Sidebar,
@@ -91,6 +92,7 @@ const navGroups = [
     label: "Intelligence",
     items: [
       { href: "/analytics", label: "Analytics", icon: BarChart3 },
+      { href: "/team-performance", label: "Team Performance", icon: Trophy },
       { href: "/forecasting", label: "Forecasting", icon: TrendingUp },
       { href: "/demand-planning", label: "Demand Planning", icon: ShoppingCart },
       { href: "/reports", label: "Reports", icon: FileText },
