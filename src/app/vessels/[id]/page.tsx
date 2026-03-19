@@ -39,6 +39,8 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
   const [contaminationType, setContaminationType] = useState("");
   const [healthNotes, setHealthNotes] = useState("");
   const [updatingHealth, setUpdatingHealth] = useState(false);
+  const [contamPhoto, setContamPhoto] = useState<File | null>(null);
+  const [contamPhotoPreview, setContamPhotoPreview] = useState<string | null>(null);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [moveLocationId, setMoveLocationId] = useState("");
   const [moveNotes, setMoveNotes] = useState("");
@@ -127,12 +129,50 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
         body: JSON.stringify(body),
       });
       if (res.ok) {
+        // Upload contamination photo if one was attached
+        if (contamPhoto && (healthStatus === "critical" || healthStatus === "necrotic" || healthStatus === "dead")) {
+          try {
+            const formData = new FormData();
+            formData.append("file", contamPhoto);
+            const uploadRes = await fetch("/api/photos/upload", { method: "POST", body: formData });
+
+            let url: string;
+            if (uploadRes.ok) {
+              const blob = await uploadRes.json();
+              url = blob.url;
+            } else {
+              url = await new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target?.result as string);
+                reader.readAsDataURL(contamPhoto);
+              });
+            }
+
+            const caption = `Contamination evidence${contaminationType ? ` — ${contaminationType}` : ""}`;
+            await fetch("/api/photos", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                url,
+                vesselId: id,
+                caption,
+                stage: vessel?.stage,
+              }),
+            });
+          } catch {
+            toast.error("Photo upload failed, but health status was saved.");
+          }
+        }
+
         toast.success("Health updated");
         setHealthDialogOpen(false);
         setHealthStatus("healthy");
         setContaminationType("");
         setHealthNotes("");
+        setContamPhoto(null);
+        setContamPhotoPreview(null);
         fetchVessel();
+        fetchPhotos();
       } else {
         const err = await res.json();
         toast.error(err.error || "Failed");
@@ -411,17 +451,50 @@ export default function VesselDetailPage({ params }: { params: Promise<{ id: str
                   </Select>
                 </div>
                 {(healthStatus === "critical" || healthStatus === "necrotic" || healthStatus === "dead") && (
-                  <div>
-                    <Label>Contamination Type</Label>
-                    <Select value={contaminationType} onValueChange={setContaminationType}>
-                      <SelectTrigger className="mt-1"><SelectValue placeholder="Select type" /></SelectTrigger>
-                      <SelectContent>
-                        {CONTAMINATION_TYPES.map((t) => (
-                          <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <>
+                    <div>
+                      <Label>Contamination Type</Label>
+                      <Select value={contaminationType} onValueChange={setContaminationType}>
+                        <SelectTrigger className="mt-1"><SelectValue placeholder="Select type" /></SelectTrigger>
+                        <SelectContent>
+                          {CONTAMINATION_TYPES.map((t) => (
+                            <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Photo Evidence (optional)</Label>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="mt-1"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (!f) return;
+                          setContamPhoto(f);
+                          const reader = new FileReader();
+                          reader.onload = (ev) => setContamPhotoPreview(ev.target?.result as string);
+                          reader.readAsDataURL(f);
+                        }}
+                      />
+                      {contamPhotoPreview && (
+                        <div className="relative mt-2">
+                          <img src={contamPhotoPreview} alt="Contamination evidence" className="rounded-md max-h-32 object-cover" />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="absolute top-1 right-1 bg-background/80"
+                            onClick={() => { setContamPhoto(null); setContamPhotoPreview(null); }}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">Snap a photo of the contamination for tracking.</p>
+                    </div>
+                  </>
                 )}
                 <div>
                   <Label>Notes</Label>
