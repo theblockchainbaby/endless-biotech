@@ -8,6 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import { ThemeProvider } from "next-themes";
 import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
+import { HeartbeatProvider } from "@/components/heartbeat-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -109,6 +110,7 @@ export default function RootLayout({
             <Toaster />
             <ServiceWorkerRegister />
             <KeyboardShortcuts />
+            <HeartbeatProvider />
           </SessionProvider>
         </ThemeProvider>
       </body>
