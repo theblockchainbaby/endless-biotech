@@ -82,7 +82,7 @@ const FEATURES = [
 const PRICING = [
   {
     name: "Starter",
-    price: 499,
+    price: 199,
     description: "For small labs getting started",
     features: [
       "Up to 2,000 active vessels",
@@ -94,7 +94,8 @@ const PRICING = [
   },
   {
     name: "Pro",
-    price: 1299,
+    price: null,
+    contactUs: true,
     description: "For growing labs that need analytics",
     popular: true,
     features: [
@@ -108,7 +109,8 @@ const PRICING = [
   },
   {
     name: "Enterprise",
-    price: 2499,
+    price: null,
+    contactUs: true,
     description: "For large-scale operations",
     features: [
       "Unlimited vessels",
@@ -384,10 +386,16 @@ export function LandingPage() {
                     <h3 className="text-2xl font-bold mb-1 text-center">{tier.name}</h3>
                     <p className="text-sm text-muted-foreground mb-4 text-center">{tier.description}</p>
                     <div className="mb-6 text-center">
-                      <span className="text-4xl font-bold">
-                        $<NumberTicker value={tier.price} delay={0.3} />
-                      </span>
-                      <span className="text-muted-foreground">/mo</span>
+                      {tier.contactUs ? (
+                        <span className="text-4xl font-bold">Contact Us</span>
+                      ) : (
+                        <>
+                          <span className="text-4xl font-bold">
+                            $<NumberTicker value={tier.price!} delay={0.3} />
+                          </span>
+                          <span className="text-muted-foreground">/mo</span>
+                        </>
+                      )}
                     </div>
                     <ul className="space-y-3 flex-1">
                       {tier.features.map((feature) => (
@@ -398,15 +406,21 @@ export function LandingPage() {
                       ))}
                     </ul>
                     <div className="mt-auto pt-6">
-                      <Link href={`/signup?plan=${tier.name.toLowerCase()}`}>
-                        {tier.popular ? (
-                          <ShimmerButton className="w-full">Get Started</ShimmerButton>
-                        ) : (
-                          <Button className="w-full" variant="outline">
-                            Get Started
-                          </Button>
-                        )}
-                      </Link>
+                      {tier.contactUs ? (
+                        <a href="mailto:support@vitroslabs.com">
+                          <Button className="w-full" variant="outline">Contact Us</Button>
+                        </a>
+                      ) : (
+                        <Link href={`/signup?plan=${tier.name.toLowerCase()}`}>
+                          {tier.popular ? (
+                            <ShimmerButton className="w-full">Get Started</ShimmerButton>
+                          ) : (
+                            <Button className="w-full" variant="outline">
+                              Start Free Trial
+                            </Button>
+                          )}
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </MagicCard>
