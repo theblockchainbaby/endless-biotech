@@ -66,8 +66,7 @@ export default function LoginPage() {
     <div className="w-full max-w-md mx-4">
       <div className="rounded-xl border bg-card p-8 shadow-sm">
         <div className="flex items-center justify-center gap-2 mb-4">
-          <Image src="/logo.png" alt="VitrOS" width={500} height={488} className="h-10 w-auto" />
-          <Image src="/logo-text.png" alt="VitrOS" width={573} height={155} className="h-7 w-auto" />
+          <Image src="/logo.png" alt="VitrOS" width={500} height={488} className="h-14 w-auto" />
         </div>
         <p className="text-center text-muted-foreground mb-6">
           Enterprise Tissue Culture Management
