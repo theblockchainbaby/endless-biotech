@@ -147,10 +147,13 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <div className="pt-4 pb-3 px-4">
-        <Link href="/" className="font-semibold text-sm">
-          {(user as Record<string, unknown> | undefined)?.organizationName as string || "Tissue Culture"}
+      <div className="py-1 px-4">
+        <Link href="/" className="flex items-center gap-2">
+          <img src="/logo.png" alt="VitrOS" className="h-[56px] w-auto" />
         </Link>
+        <span className="text-xs text-muted-foreground mt-1 block group-data-[collapsible=icon]:hidden">
+          {(user as Record<string, unknown> | undefined)?.organizationName as string || ""}
+        </span>
       </div>
 
       <div className="px-3 pb-2 flex justify-end gap-1 group-data-[collapsible=icon]:hidden">
