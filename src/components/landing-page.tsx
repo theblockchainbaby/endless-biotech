@@ -81,44 +81,42 @@ const FEATURES = [
 
 const PRICING = [
   {
-    name: "Starter",
-    price: 199,
-    description: "For small labs getting started",
+    name: "Solo",
+    price: 99,
+    description: "For single-bench labs and startups",
     features: [
-      "Up to 2,000 active vessels",
-      "5 team members",
+      "1 user, 1 location",
+      "Up to 500 active vessels",
       "Barcode scanning",
       "Basic contamination tracking",
       "Email support",
     ],
   },
   {
-    name: "Pro",
-    price: null,
-    contactUs: true,
-    description: "For growing labs that need analytics",
+    name: "Growth",
+    price: 299,
+    description: "For mid-size operations scaling up",
     popular: true,
     features: [
-      "Up to 10,000 active vessels",
-      "15 team members",
-      "Advanced analytics & reports",
-      "Contamination trend analysis",
-      "Production pipeline views",
+      "Up to 5 users, 3 locations",
+      "Up to 5,000 active vessels",
+      "Advanced analytics & dashboards",
+      "Demand forecasting",
+      "Lineage tree tracking",
       "Priority support",
     ],
   },
   {
-    name: "Enterprise",
-    price: null,
-    contactUs: true,
-    description: "For large-scale operations",
+    name: "Pro",
+    price: 799,
+    description: "For serious operations",
     features: [
-      "Unlimited vessels",
-      "Unlimited team members",
-      "Custom integrations",
-      "Dedicated account manager",
-      "SLA guarantee",
-      "On-site training",
+      "Unlimited users & locations",
+      "Unlimited active vessels",
+      "Tech performance tracking",
+      "Station contamination correlation",
+      "Backward scheduling",
+      "Priority support",
     ],
   },
 ];
@@ -386,16 +384,10 @@ export function LandingPage() {
                     <h3 className="text-2xl font-bold mb-1 text-center">{tier.name}</h3>
                     <p className="text-sm text-muted-foreground mb-4 text-center">{tier.description}</p>
                     <div className="mb-6 text-center">
-                      {tier.contactUs ? (
-                        <span className="text-4xl font-bold">Contact Us</span>
-                      ) : (
-                        <>
-                          <span className="text-4xl font-bold">
-                            $<NumberTicker value={tier.price!} delay={0.3} />
-                          </span>
-                          <span className="text-muted-foreground">/mo</span>
-                        </>
-                      )}
+                      <span className="text-4xl font-bold">
+                        $<NumberTicker value={tier.price} delay={0.3} />
+                      </span>
+                      <span className="text-muted-foreground">/mo</span>
                     </div>
                     <ul className="space-y-3 flex-1">
                       {tier.features.map((feature) => (
@@ -406,12 +398,7 @@ export function LandingPage() {
                       ))}
                     </ul>
                     <div className="mt-auto pt-6">
-                      {tier.contactUs ? (
-                        <a href="mailto:support@vitroslabs.com">
-                          <Button className="w-full" variant="outline">Contact Us</Button>
-                        </a>
-                      ) : (
-                        <Link href={`/signup?plan=${tier.name.toLowerCase()}`}>
+                      <Link href={`/signup?plan=${tier.name.toLowerCase()}`}>
                           {tier.popular ? (
                             <ShimmerButton className="w-full">Get Started</ShimmerButton>
                           ) : (
@@ -420,12 +407,29 @@ export function LandingPage() {
                             </Button>
                           )}
                         </Link>
-                      )}
                     </div>
                   </div>
                 </MagicCard>
               </motion.div>
             ))}
+          </motion.div>
+
+          {/* Enterprise & Gov link */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="mt-8 text-center"
+          >
+            <p className="text-sm text-muted-foreground">
+              Looking for <span className="font-semibold text-foreground">Enterprise</span> or{" "}
+              <span className="font-semibold text-foreground">Government & University</span> pricing?{" "}
+              <Link href="/pricing" className="text-primary underline underline-offset-4 hover:text-primary/80">
+                See all plans
+              </Link>
+            </p>
           </motion.div>
 
           {/* Founding Partner */}

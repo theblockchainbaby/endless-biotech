@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
@@ -33,6 +32,7 @@ import {
   Plug,
   CalendarClock,
   Trophy,
+  MessageSquare,
 } from "lucide-react";
 import {
   Sidebar,
@@ -41,11 +41,9 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -91,6 +89,7 @@ const navGroups = [
   {
     label: "Intelligence",
     items: [
+      { href: "/assistant", label: "Lab Assistant", icon: MessageSquare },
       { href: "/analytics", label: "Analytics", icon: BarChart3 },
       { href: "/team-performance", label: "Team Performance", icon: Trophy },
       { href: "/forecasting", label: "Forecasting", icon: TrendingUp },
@@ -148,23 +147,11 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/">
-                <Image src="/logo.png" alt="VitrOS" width={32} height={32} className="size-8 rounded-lg" />
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-bold text-base">VitrOS</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {(user as Record<string, unknown> | undefined)?.organizationName as string || "Tissue Culture"}
-                  </span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
+      <div className="pt-4 pb-3 px-4">
+        <Link href="/" className="font-semibold text-sm">
+          {(user as Record<string, unknown> | undefined)?.organizationName as string || "Tissue Culture"}
+        </Link>
+      </div>
 
       <div className="px-3 pb-2 flex justify-end gap-1 group-data-[collapsible=icon]:hidden">
         <ThemeToggle />

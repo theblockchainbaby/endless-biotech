@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 export const metadata: Metadata = {
   title: "Pricing | VitrOS Lab Management Software",
   description:
-    "Simple, scalable pricing for tissue culture labs. Starter from $199/mo with vessel tracking, barcode scanning, dashboards, and more. Try VitrOS today.",
+    "Simple, scalable pricing for tissue culture labs. Start from $99/mo with vessel tracking, barcode scanning, dashboards, and more. Try VitrOS today.",
   keywords: [
     "lab workflow software",
     "tissue tracking software",
@@ -19,19 +19,19 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Pricing | VitrOS Lab Management Software",
     description:
-      "Simple, scalable pricing for tissue culture labs. Starter from $199/mo with vessel tracking, barcode scanning, dashboards, and more.",
+      "Simple, scalable pricing for tissue culture labs. Start from $99/mo with vessel tracking, barcode scanning, dashboards, and more.",
   },
 };
 
 const PLANS = [
   {
-    name: "Starter",
-    price: 199,
+    name: "Solo",
+    price: 99,
     contactUs: false,
-    description: "For small labs getting started with lab workflow software",
+    description: "For single-bench labs, hobbyists, and small startups",
     features: [
-      "Up to 2,000 active vessels",
-      "5 team members",
+      "1 user, 1 location",
+      "Up to 500 active vessels",
       "Barcode scanning",
       "Vessel tracking & stage pipeline",
       "Basic contamination tracking",
@@ -40,15 +40,15 @@ const PLANS = [
     ],
   },
   {
-    name: "Pro",
-    price: null,
-    contactUs: true,
-    description: "For growing labs that need tissue tracking software with advanced analytics",
+    name: "Growth",
+    price: 299,
+    contactUs: false,
+    description: "For mid-size operations scaling production",
     popular: true,
     features: [
-      "Up to 10,000 active vessels",
-      "15 team members",
-      "Everything in Starter, plus:",
+      "Up to 5 users, 3 locations",
+      "Up to 5,000 active vessels",
+      "Everything in Solo, plus:",
       "Advanced analytics & dashboards",
       "Contamination trend analysis",
       "Production pipeline views",
@@ -59,13 +59,29 @@ const PLANS = [
     ],
   },
   {
+    name: "Pro",
+    price: 799,
+    contactUs: false,
+    description: "For serious operations needing full lab management",
+    features: [
+      "Unlimited users & locations",
+      "Unlimited active vessels",
+      "Everything in Growth, plus:",
+      "Tech performance & incentive tracking",
+      "Station & hood contamination correlation",
+      "Media batch correlation",
+      "Backward production scheduling",
+      "Shift handoff notes",
+      "Zebra ZPL label printing",
+      "Priority support",
+    ],
+  },
+  {
     name: "Enterprise",
     price: null,
     contactUs: true,
-    description: "For large-scale operations needing full lab inventory software",
+    description: "For large-scale operations with custom needs",
     features: [
-      "Unlimited vessels",
-      "Unlimited team members",
       "Everything in Pro, plus:",
       "Custom integrations & API access",
       "Dedicated account manager",
@@ -73,6 +89,24 @@ const PLANS = [
       "On-site training & onboarding",
       "Custom reporting",
       "SSO / advanced security",
+      "White-glove onboarding",
+    ],
+  },
+  {
+    name: "Government & University",
+    price: 299,
+    contactUs: false,
+    govTier: true,
+    description: "Special pricing for government agencies and academic institutions",
+    features: [
+      "Up to 10 users, 3 locations",
+      "Up to 10,000 active vessels",
+      "All Pro features included",
+      "Audit trail & compliance logging",
+      "Clone line traceability for germplasm",
+      "Pathogen test documentation",
+      "Annual billing available",
+      "Email & priority support",
     ],
   },
 ];
@@ -92,11 +126,15 @@ const FAQ = [
   },
   {
     q: "Do you offer discounts for annual billing?",
-    a: "Yes — save 20% when you pay annually. Contact us for details.",
+    a: "Yes — pay annually and get 2 months free on any plan. That means Solo is just $990/year, Growth is $2,990/year, and Pro is $7,990/year.",
   },
   {
-    q: "What if I need more than 10,000 vessels but don't need Enterprise features?",
-    a: "Reach out to us — we can customize a plan based on your vessel count and team size.",
+    q: "What if I need more vessels but not Enterprise features?",
+    a: "Pro gives you unlimited vessels and users. If you need custom integrations or dedicated support on top of that, Enterprise is the way to go.",
+  },
+  {
+    q: "Do you offer government or university pricing?",
+    a: "Yes. Our Government & University tier is $299/mo and includes all Pro features with audit trail and compliance logging. Annual billing comes to $3,588/year, well under most institutional procurement thresholds.",
   },
 ];
 
@@ -128,18 +166,19 @@ export default function PricingPage() {
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
             Lab workflow software that grows with your operation. Every plan includes vessel tracking,
-            barcode scanning, and real-time dashboards. Starter from $199/mo — Pro and Enterprise priced to fit your lab.
+            barcode scanning, and real-time dashboards. Start from $99/mo. Pay annually and get 2 months free.
           </p>
         </div>
       </section>
 
       {/* Pricing Cards */}
       <section className="pb-16 md:pb-24 px-4">
-        <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-6">
-          {PLANS.map((plan) => (
+        {/* Main 4 plans */}
+        <div className="max-w-6xl mx-auto grid md:grid-cols-4 gap-5">
+          {PLANS.filter((p) => !(p as any).govTier).map((plan) => (
             <div
               key={plan.name}
-              className={`rounded-xl border bg-background p-8 flex flex-col ${
+              className={`rounded-xl border bg-background p-6 flex flex-col ${
                 plan.popular ? "border-primary shadow-lg ring-1 ring-primary/20 relative" : ""
               }`}
             >
@@ -148,19 +187,19 @@ export default function PricingPage() {
                   Most Popular
                 </Badge>
               )}
-              <h3 className="text-2xl font-bold mb-1">{plan.name}</h3>
-              <p className="text-sm text-muted-foreground mb-4">{plan.description}</p>
+              <h3 className="text-xl font-bold mb-1">{plan.name}</h3>
+              <p className="text-xs text-muted-foreground mb-4">{plan.description}</p>
               <div className="mb-6">
                 {plan.contactUs ? (
                   <span className="text-2xl font-bold text-muted-foreground">Contact Us</span>
                 ) : (
                   <>
-                    <span className="text-4xl font-bold">${plan.price!.toLocaleString()}</span>
+                    <span className="text-3xl font-bold">${plan.price!.toLocaleString()}</span>
                     <span className="text-muted-foreground">/mo</span>
                   </>
                 )}
               </div>
-              <ul className="space-y-3 flex-1">
+              <ul className="space-y-2 flex-1">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2 text-sm">
                     <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
@@ -168,20 +207,62 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <div className="mt-8">
+              <div className="mt-6">
                 {plan.contactUs ? (
                   <a href="mailto:support@vitroslabs.com">
-                    <Button className="w-full" variant={plan.popular ? "default" : "outline"}>
+                    <Button className="w-full" variant="outline">
                       Contact Us
                     </Button>
                   </a>
                 ) : (
                   <Link href={`/signup?plan=${plan.name.toLowerCase()}`}>
-                    <Button className="w-full" variant="outline">
+                    <Button className="w-full" variant={plan.popular ? "default" : "outline"}>
                       Start Free Trial
                     </Button>
                   </Link>
                 )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Government & University tier */}
+        <div className="max-w-3xl mx-auto mt-10">
+          {PLANS.filter((p) => (p as any).govTier).map((plan) => (
+            <div
+              key={plan.name}
+              className="rounded-xl border-2 border-blue-500/30 bg-blue-500/5 p-8 relative"
+            >
+              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-4">
+                Government & Academic
+              </Badge>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold mb-1">{plan.name}</h3>
+                  <p className="text-sm text-muted-foreground mb-4">{plan.description}</p>
+                  <ul className="space-y-2">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2 text-sm">
+                        <Check className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="text-center md:text-right shrink-0">
+                  <div className="mb-4">
+                    <span className="text-4xl font-bold">${plan.price!.toLocaleString()}</span>
+                    <span className="text-muted-foreground">/mo</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    $3,588/yr with annual billing. Under $25K procurement threshold.
+                  </p>
+                  <a href="mailto:support@vitroslabs.com?subject=Government%20%2F%20University%20Inquiry">
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                      Request Access
+                    </Button>
+                  </a>
+                </div>
               </div>
             </div>
           ))}
