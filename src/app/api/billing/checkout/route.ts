@@ -5,7 +5,7 @@ import { stripe, PLAN_CONFIG, PlanName } from "@/lib/stripe";
 import { z } from "zod";
 
 const checkoutSchema = z.object({
-  plan: z.enum(["starter", "pro", "enterprise"]),
+  plan: z.enum(["solo", "growth", "pro", "enterprise"]),
   coupon: z.string().optional(),
 });
 

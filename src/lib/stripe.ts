@@ -31,19 +31,26 @@ export const PLAN_CONFIG = {
     maxTeamMembers: 2,
     price: 0,
   },
-  starter: {
-    name: "Starter",
-    priceId: process.env.STRIPE_STARTER_PRICE_ID || null,
-    maxVessels: 2000,
+  solo: {
+    name: "Solo",
+    priceId: process.env.STRIPE_SOLO_PRICE_ID || null,
+    maxVessels: 500,
+    maxTeamMembers: 1,
+    price: 99,
+  },
+  growth: {
+    name: "Growth",
+    priceId: process.env.STRIPE_GROWTH_PRICE_ID || null,
+    maxVessels: Infinity,
     maxTeamMembers: 5,
-    price: 499,
+    price: 299,
   },
   pro: {
     name: "Pro",
     priceId: process.env.STRIPE_PRO_PRICE_ID || null,
-    maxVessels: 10000,
+    maxVessels: Infinity,
     maxTeamMembers: 15,
-    price: 1299,
+    price: 799,
   },
   enterprise: {
     name: "Enterprise",

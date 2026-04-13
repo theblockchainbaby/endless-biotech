@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 
 const PLAN_LABELS: Record<string, string> = {
   free: "Free",
-  starter: "Starter",
+  solo: "Solo",
+  growth: "Growth",
   pro: "Pro",
   enterprise: "Enterprise",
 };
